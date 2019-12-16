@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,height=device-height,initial-scale=1">
+
+<title>untitled document</title>
+
+<style media="screen">
+.multiselect {
+  width: 200px;
+}
+
+.selectBox {
+  position: relative;
+}
+
+.selectBox select {
+  width: 100%;
+  font-weight: bold;
+}
+
+.overSelect {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+}
+
+/* #checkboxes {
+  display: none;
+  border: 1px #dadada solid;
+} */
+
+#checkboxes label {
+  display: block;
+}
+
+#checkboxes label:hover {
+  background-color: #1e90ff;
+}
+#checkboxes2 {
+  display: none;
+  border: 1px #dadada solid;
+}
+
+#checkboxes2 label {
+  display: block;
+}
+
+#checkboxes2 label:hover {
+  background-color: #1e90ff;
+}
+
+</style>
+</head>
+<body>
+  <form>
+    <div class="multiselect">
+      <div class="selectBox" onclick="showCheckboxes()">
+        <select multiple>
+          <option>Histogram</option>
+        </select>
+        <div class="overSelect"></div>
+      </div>
+      <div id="checkboxes">
+        <label for="one">
+          <input type="checkbox" id="one"/>First checkbox</label>
+        <label for="two">
+          <input type="checkbox" id="two"/>Second checkbox</label>
+        <label for="three">
+          <input type="checkbox" id="three"/>Third checkbox</label>
+      </div>
+    </div>
+    <div class="multiselect">
+      <div class="selectBox" onclick="showCheckboxes2()">
+        <select multiple>
+          <option>Test</option>
+        </select>
+        <div class="overSelect"></div>
+      </div>
+      <div id="checkboxes2">
+        <label for="one">
+          <input type="checkbox" id="test1" />Test1</label>
+        <label for="two">
+          <input type="checkbox" id="two" />Test12</label>
+        <label for="three">
+          <input type="checkbox" id="three" />Test3</label>
+      </div>
+    </div>
+  </form>
+
+<script>
+var expanded = false;
+
+function showCheckboxes() {
+  var checkboxes = document.getElementById("checkboxes");
+  if (!expanded) {
+    checkboxes.style.display = "block";
+    expanded = true;
+  } else {
+    checkboxes.style.display = "none";
+    expanded = false;
+  }
+}
+var expanded = false;
+function showCheckboxes2() {
+  var checkboxes = document.getElementById("checkboxes2");
+  if (!expanded) {
+    checkboxes.style.display = "block";
+    expanded = true;
+  } else {
+    checkboxes.style.display = "none";
+    expanded = false;
+  }
+}
+</script>
+</body>
+</html>

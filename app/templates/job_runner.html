@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>ORS Data Upload</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+</head>
+<style>
+body {
+  color: #555;
+  background: #f1f1f1;
+  font-size: 1.25em;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+hr {
+  margin: 50px ;
+}
+
+ul {
+  list-style: none;
+}
+.box {
+    padding: 10px 5px 10px 5px;
+}
+.cliente {
+    margin-top:10px;
+    background-color: white;
+    border: #cdcdcd medium solid;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+}
+.navbar {
+    background-color: #2c3e50;
+    margin:0;
+    color: white;
+
+}
+.navbar-nav>li>a {
+ color : white;
+}
+.navbar-brand{
+  color: white;
+}
+#checkboxes0 {
+  display: none;
+}
+
+#checkboxes0 label {
+  display: block;
+}
+#checkboxes1 {
+  display: none;
+}
+
+#checkboxes1 label {
+  display: block;
+}
+#checkboxes2 {
+  display: none;
+}
+
+#checkboxes2 label {
+  display: block;
+}
+.i-am-centered { margin: auto; max-width: 500px;}
+.i-am-centered1 { margin: auto; max-width: 450px;}
+.i-am-centered2 { margin-left: 50px;margin-right: 25px;max-width: 1000px;}
+.i-am-centered4 { margin: auto; max-width: 400px;}
+
+.card {
+  background-color: white;
+  padding: 20px;
+  margin-top: 20px;
+}
+</style>
+<body>
+
+<div class="jumbotron text-center">
+  <h1>ORS+</h1>
+  <p>Data Upload Service</p>
+</div>
+<nav class="navbar">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <a class="navbar-brand" href="#">ORS+</a>
+    </div>
+    <ul class="nav navbar-nav">
+      <li><a href="#">About</a></li>
+      <li><a href="#">Data Upload</a></li>
+      <li><a href="#">Data Download</a></li>
+    </ul>
+  </div>
+</nav>
+<div class="container">
+  <form action="/action_page.php">
+  <div class="row">
+    <div class="col-sm-6">
+      <div class="cliente">
+        <div class="i-am-centered">
+          <h3>Dataset Identifier</h3>
+            <div class="form-group">
+              <label for="ds_id">Dataset Identifier:</label>
+              <input type="email" class="form-control" id="datasetid">
+              <p> </p>
+              <p> </p>
+              <p> </p>
+            </div>
+          </div>
+        </div>
+    </div>
+    <div class="col-sm-6">
+      <div class="cliente">
+        <div class="i-am-centered">
+          <h3>Software Identifier</h3>
+            <div class="form-group">
+              <label for="ds_id">Software Identifier:</label>
+              <input type="email" class="form-control" id="jobid">
+              <p></p>
+              <button type="submit" class="btn btn-default">Run Job!</button>
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
