@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+* {
+  box-sizing: border-box;
+}
+
+/* label {
+  display: inline-block;
+  width: 140px;
+  text-align: left;
+}​ */
+body {
+  font-family: Arial;
+  padding: 10px;
+  background: #f1f1f1;
+}
+
+/* Header/Blog Title */
+.header {
+  padding: 30px;
+  text-align: center;
+  background: white;
+}
+
+.header h1 {
+  font-size: 50px;
+}
+
+.header3 {
+  padding: 10px;
+  text-align: center;
+  background: white;
+}
+
+.header3 h1 {
+  font-size: 25px;
+}
+
+.header2 {
+  text-align: center;
+}
+
+.header2 h2 {
+  font-size: 25px;
+}
+
+/* Style the top navigation bar */
+.topnav {
+  overflow: hidden;
+  background-color: #333;
+}
+
+/* Style the topnav links */
+.topnav a {
+  float: left;
+  display: block;
+  color: #f2f2f2;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+/* Change color on hover */
+.topnav a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+/* Create two unequal columns that floats next to each other */
+/* Left column */
+.leftcolumn {
+  float: left;
+  width: 65%;
+  padding-left: 100px;
+  padding-right: 100px;
+}
+
+/* Right column */
+.rightcolumn {
+  float: left;
+  width: 35%;
+  background-color: #f1f1f1;
+  padding-right: 100px;
+}
+
+/* Fake image */
+.fakeimg {
+  background-color: #aaa;
+  width: 100%;
+  padding: 20px;
+}
+
+/* Add a card effect for articles */
+.card {
+  background-color: white;
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+/* Footer */
+.footer {
+  padding: 20px;
+  padding-right: 250px;
+  padding-left: 250px;
+  text-align: center;
+  background: #ddd;
+  margin-top: 20px;
+}
+
+/* Responsive layout - when the screen is less than 800px wide, make the two columns stack on top of each other instead of next to each other */
+@media screen and (max-width: 800px) {
+  .leftcolumn, .rightcolumn {
+    width: 100%;
+    padding: 0;
+  }
+}
+
+/* Responsive layout - when the screen is less than 400px wide, make the navigation links stack on top of each other instead of next to each other */
+@media screen and (max-width: 400px) {
+  .topnav a {
+    float: none;
+    width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>ORS+</h1>
+<h2>Data Upload Service</h2>
+</div>
+
+<div class="topnav">
+  <a href="#">About</a>
+  <a href="#">Run Job</a>
+  <a href="#">Search</a>
+  <a href="#" style="float:right">Link</a>
+</div>
+<div class="header2">
+  <h1>Step 1: Metadata Entry</h1>
+</div>
+<div class="row">
+  <form action = "http://0.0.0.0:5000/upload-files" method = "POST" enctype = "multipart/form-data">
+  <div class="leftcolumn">
+    <div class="card">
+    <h2>By Hand</h2>
+    <h3>Input Object Metadata</h3>
+       <div class='fakeimg'>
+        <label>Type: <input type = "text" name = "@type" /></label>
+        <p></p>
+        <label>Name: <input type = "text" name = "name" /></label>
+        <p></p>
+        <label>Description: <input type = "text" name = "description" /></label>
+        <p></p>
+        <label>Author: <input type ="text" name = "author" /></label>
+        <p></p>
+        <label>Date Created: <input type ="text" name = "dateCreated" /></label>
+
+     </div>
+   </div>
+  </div>
+  <div class="rightcolumn">
+    <div class="card">
+      <h2>With JSON File</h2>
+      <h3>Upload JSON with Object Metadata</h3>
+      <p></p>
+      <div class='fakeimg'>
+         <input type = "file" name = "metadata" />
+
+       </div>
+     </div>
+  </div>
+
+</div>
+<div class="header2">
+  <h1>Step 2: File Selection</h1>
+</div>
+<div class="footer">
+  <div class="card">
+    <h2>Select File to Upload</h2>
+    <div class='fakeimg'>
+      <label>Folder in Minio: <input type ="text" name = "folder" /></label>
+      <p></p>
+      <input type = "file" name = "data-file" multiple />
+      <input type = "submit"/>
+    </div>
+  </div>
+</div>
+</form>
+<!-- <div class="row">
+  <div class="leftcolumn">
+    <div class="card">
+    <h2>By Hand</h2>
+    <h3>Input Object Metadata</h3>
+    <div class='fakeimg'>
+     <form action = "http://localhost:5005/post-object" method = "POST">
+        <label>Type: <input type = "text" name = "@type" /></label>
+        <p></p>
+        <label>Name: <input type = "text" name = "name" /></label>
+        <p></p>
+        <label>Description: <input type = "text" name = "description" /></label>
+        <p></p>
+        <label>Author: <input type ="text" name = "author" /></label>
+        <p></p>
+        <label>Date Created: <input type ="text" name = "dateCreated" /></label>
+        <p><input type = "submit"/></p>
+     </form>
+   </div>
+   </div>
+  </div>
+  <div class="rightcolumn">
+    <div class="card">
+      <h2>With JSON File</h2>
+      <h3>Upload JSON with Object Metadata</h3>
+      <p></p>
+      <div class='fakeimg'>
+      <form action = "http://localhost:5005/post-object" method = "POST"
+         enctype = "multipart/form-data">
+         <input type = "file" name = "file" />
+         <input type = "submit"/>
+       </div>
+     </div>
+  </div>
+</div> -->
+
+</body>
+</html>
+<!-- <html>
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+  <link href="https://fonts.googleapis.com/css?family=Raleway&display=swap" rel="stylesheet">
+
+  <style>
+  .leftcolumn {
+    float: left;
+    width: 75%;
+  }
+
+/* Right column */
+  .rightcolumn {
+    float: left;
+    width: 25%;
+    background-color: #f1f1f1;
+    padding-left: 20px;
+  }
+@media screen and (max-width: 800px) {
+  .leftcolumn, .rightcolumn {
+    width: 100%;
+    padding: 0;
+  }
+}
+
+/* Responsive layout - when the screen is less than 400px wide, make the navigation links stack on top of each other instead of next to each other */
+@media screen and (max-width: 400px) {
+  .topnav a {
+    float: none;
+    width: 100%;
+  }
+}
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+  header {
+    font-family: 'Raleway', sans-serif;
+/*    border-bottom: 2px solid grey;*/
+  }
+
+  label {
+    display: inline-block;
+    width: 140px;
+    text-align: left;
+  }​
+
+  header h1 {
+    font-size: 45;
+    display: inline;
+    padding-right: 30px;
+  }
+
+  header a {
+    font-size: 25;
+    color: black;
+    text-decoration: none;
+  }
+
+  header a:hover {
+    color: white;
+    background: black;
+  }
+
+
+  header ul {
+    list-style-type: none;
+    text-align: left;
+    margin: 0;
+    padding: 0px;
+  }
+
+
+
+  header li {
+    display: inline-block;
+    padding-right: 5%;
+  }
+
+  header form {
+    display: inline;
+  }
+
+
+  header input[type=text] {
+
+    font-family: 'Raleway', sans-serif;
+    border: none;
+    text-align: center;
+    margin: 0;
+    padding: 0px;
+    border-bottom: 0.5px solid grey;
+  }
+
+  header input[type=submit] {
+
+    font-family: 'Raleway', sans-serif;
+    text-decoration: none;
+    border: none;
+  }
+
+  header input[type=submit]:hover {
+    background-color: black;
+    color: white;
+  }
+
+  </style>
+</head>
+
+<header>
+
+      <ul>
+
+        <li>
+          <h1>ORS+</h1>
+        </li>
+
+        <li>
+          <a href="/about">About</a>
+        </li>
+
+        <li>
+          <a href="/doc">Documentation</a>
+        </li>
+
+        <li>
+          <a href="/swagger">OpenAPI</a>
+        </li>
+
+        <li>
+          <a href="/oauth/authorize">Login</a>
+        </li>
+
+        <li>
+          <form action="/search" type="submit">
+            <input type="text" id="query" placeholder="Full Text Search">
+            <input type="submit" value="Search">
+          </form>
+        </li>
+      </ul>
+
+
+</header>
+
+<div class="row">
+  <div class="leftcolumn">
+      <h2>Enter Metadata</h2>
+      <h3>Input Object Metadata</h3>
+       <form action = "http://localhost:5005/post-object" method = "POST">
+          <label>Type: <input type = "text" name = "@type" /></label>
+          <p></p>
+          <label>Name: <input type = "text" name = "name" /></label>
+          <p></p>
+          <label>Description: <input type = "text" name = "description" /></label>
+          <p></p>
+          <label>Author: <input type ="text" name = "author" /></label>
+          <p></p>
+          <label>Date Created: <input type ="text" name = "dateCreated" /></label>
+          <p><input type = "submit" value = "submit" /></p>
+       </form>
+  </div>
+  <div class="rightcolumn">
+    <div class="card">
+      <h3>Upload JSON with Object Metadata</h3>
+      <p></p>
+      <form action = "http://localhost:5005/post-object" method = "POST"
+         enctype = "multipart/form-data">
+         <input type = "file" name = "file" />
+         <input type = "submit"/>
+  </div>
+</div>
+
+</html> -->

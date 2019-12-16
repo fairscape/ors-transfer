@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Run Job</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+</head>
+<style>
+body {
+  color: #555;
+  background: #f1f1f1;
+  font-size: 1.25em;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+hr {
+  margin: 50px ;
+}
+
+ul {
+  list-style: none;
+}
+.box {
+    padding: 10px 5px 10px 5px;
+}
+.cliente {
+    margin-top:10px;
+    background-color: white;
+    border: #cdcdcd medium solid;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    -webkit-border-radius: 10px;
+}
+.navbar {
+    background-color: #2c3e50;
+    margin:0;
+    color: white;
+
+}
+.navbar-nav>li>a {
+ color : white;
+}
+.navbar-brand{
+  color: white;
+}
+#checkboxes0 {
+  display: none;
+}
+
+#checkboxes0 label {
+  display: block;
+}
+#checkboxes1 {
+  display: none;
+}
+
+#checkboxes1 label {
+  display: block;
+}
+#checkboxes2 {
+  display: none;
+}
+
+#checkboxes2 label {
+  display: block;
+}
+#checkboxes3 {
+  display: none;
+}
+
+#checkboxes3 label {
+  display: block;
+}
+.i-am-centered { margin-left: 25px;margin-right: 25px;max-width: 1000px;}
+.card {
+  background-color: white;
+  padding: 20px;
+  margin-top: 20px;
+}
+</style>
+<body>
+
+  <div class="jumbotron text-center">
+    <h1>ORS+</h1>
+    <p>Data Upload Service</p>
+  </div>
+  <nav class="navbar">
+    <div class="container-fluid">
+      <div class="navbar-header">
+        <a class="navbar-brand" href="#">ORS+</a>
+      </div>
+      <ul class="nav navbar-nav">
+        <li><a href="#">About</a></li>
+        <li><a href="#">Data Upload</a></li>
+        <li><a href="#">Data Download</a></li>
+      </ul>
+    </div>
+  </nav>
+<div class="container">
+  <form action="/action_page.php">
+  <div class="row">
+    <div class="col-sm-6">
+      <div class="cliente">
+        <div class="i-am-centered">
+          <h3>Dataset Identifier</h3>
+            <div class="form-group">
+              <label for="ds_id">Dataset Identifier:</label>
+              <input type="email" class="form-control" id="email">
+            </div>
+          </div>
+        </div>
+    </div>
+    <div class="col-sm-4">
+      <div class="cliente">
+        <div class="i-am-centered">
+            <h3>Select Algorithms:</h3>
+            <div class="selectBox" onclick="showCheckboxes(0)">
+              <input type="checkbox" id="option0"><label for="option0">Histogram</label>
+            </div>
+            <div id="checkboxes0">
+                <ul>
+                  <li><label><input type="checkbox" class="subOption0"> Mean</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Median</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Mode</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Quantile</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Moments</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Min/Max</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Range</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Unique</label></li>
+                  <li><label><input type="checkbox" class="subOption0"> Skew</label></li>
+                </ul>
+              </div>
+              <div class="selectBox" onclick="showCheckboxes(3)">
+                <input type="checkbox" id="option3"><label for="option">Entropy</label>
+              </div>
+                <div id="checkboxes3">
+                  <ul>
+                    <li><label><input type="checkbox" class="subOption3"> Shannon Entropy</label></li>
+                    <li><label><input type="checkbox" class="subOption3"> Sample Entropy</label></li>
+                    <li><label><input type="checkbox" class="subOption3"> MultiScale Entropy</label></li>
+                  </ul>
+                </div>
+            <div class="selectBox" onclick="showCheckboxes(1)">
+              <input type="checkbox" id="option1"><label for="option">Heart Rate Variability</label>
+            </div>
+              <div id="checkboxes1">
+                <ul>
+                  <li><label><input type="checkbox" class="subOption1"> HRV Classic</label></li>
+                  <li><label><input type="checkbox" class="subOption1"> pNN</label></li>
+                </ul>
+              </div>
+            <div class="selectBox" onclick="showCheckboxes(2)">
+              <input type="checkbox" id="option2"><label for="option">Trend Analysis</label>
+              </div>
+            <ul>
+              <div id="checkboxes2">
+                <li><label><input type="checkbox" class="subOption2"> SY_Trend</label></li>
+                <li><label><input type="checkbox" class="subOption2"> ST_LocalExtrema</label></li>
+              </div>
+            </ul>
+          <button type="submit" class="btn btn-default">Submit</button>
+          <p></p>
+        </div>
+      </div>
+    </div>
+  </form>
+  </div>
+</div>
+<script>
+var checkboxes = document.querySelectorAll('input.subOption'),
+    checkall = document.getElementById('option');
+var subOption = [];
+var checkall2 = [];
+for(var i=0; i <4;i++){
+  subOption.push(document.querySelectorAll('input.subOption'.concat(String(i))));
+  checkall2.push(document.getElementById('option'.concat(String(i))))
+}
+for(var i=0; i<checkboxes.length; i++) {
+  checkboxes[i].onclick = function() {
+    var checkedCount = document.querySelectorAll('input.subOption:checked').length;
+
+    checkall.checked = checkedCount > 0;
+    checkall.indeterminate = checkedCount > 0 && checkedCount < checkboxes.length;
+  }
+}
+
+checkall2[0].onclick = function() {
+  for(var i=0; i <3;i++){
+    subOption.push(document.querySelectorAll('input.subOption'.concat(String(i))));
+    // checkall2.push(document.getElementById('option'.concat(String(i))))
+  }
+  for(var i=0;i<subOption[0].length;i++){
+    subOption[0][i].checked = this.checked;
+  }
+}
+checkall2[1].onclick = function() {
+  for(var i=0; i <3;i++){
+    subOption.push(document.querySelectorAll('input.subOption'.concat(String(i))));
+    // checkall2.push(document.getElementById('option'.concat(String(i))))
+  }
+  for(var i=0;i<subOption[1].length;i++){
+    subOption[1][i].checked = this.checked;
+  }
+}
+checkall2[2].onclick = function() {
+  for(var i=0; i <3;i++){
+    subOption.push(document.querySelectorAll('input.subOption'.concat(String(i))));
+    // checkall2.push(document.getElementById('option'.concat(String(i))))
+  }
+  for(var i=0;i<subOption[2].length;i++){
+    subOption[2][i].checked = this.checked;
+  }
+}
+checkall2[3].onclick = function() {
+  for(var i=0; i <3;i++){
+    subOption.push(document.querySelectorAll('input.subOption'.concat(String(i))));
+    // checkall2.push(document.getElementById('option'.concat(String(i))))
+  }
+  for(var i=0;i<subOption[3].length;i++){
+    subOption[3][i].checked = this.checked;
+  }
+}
+
+function showCheckboxes(i) {
+  var checkboxes = document.getElementById("checkboxes".concat(i));
+  if (checkboxes.style.display != "block"){
+  // if (!expanded) {
+    checkboxes.style.display = "block";
+
+  } else {
+    checkboxes.style.display = "none";
+  }
+}
+</script>
+</body>
+</html>
