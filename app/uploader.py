@@ -11,6 +11,8 @@ import os
 import warnings
 import stardog
 import flask
+import re
+
 
 app = Flask(__name__)
 
@@ -323,14 +325,16 @@ def upload_files():
 
     return jsonify({'error':'Files failed to upload.'}),400
 
-@app.route('/delte-file/<everything:ark>',methods = ['DELETE'])
+@app.route('/delete-file/<everything:ark>',methods = ['DELETE'])
 def delete_files(ark):
-
+    print(ark)
     if valid_ark(ark):
 
-        if regestiredID(ark):
+        req = requests.get("http://ors.uvadcos.io/" + ark)
 
-            meta = getObjectMetadata(ark)
+        if regestiredID(req.json()):
+
+            meta = req.json()
 
         else:
 
@@ -339,7 +343,18 @@ def delete_files(ark):
     else:
         return jsonify({"error":"Improperly formatted Identifier"}),400
 
-    minioLocation = meta['distribution'][0]['contentUrl']
+    if 'distribution' in meta.keys():
+        if isinstance(meta['distribution'],list):
+            if 'contentUrl' in meta['distribution'][0].keys():
+
+                minioLocation = meta['distribution'][0]['contentUrl']
+
+            else:
+                return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+        else:
+            return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+    else:
+        return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
 
     bucket = minioLocation.split('/')[1]
 
@@ -349,12 +364,48 @@ def delete_files(ark):
 
     success, error = remove_file(bucket,location)
 
+    if success:
+
+        return jsonify({'deleted':True}),200
+
+    else:
+
+        return jsonify({'deleted':False,'error':error}),400
+
+def regestiredID(result):
+
+    if 'error' in result.keys():
+
+        return False
+
+    return True
+
+def valid_ark(ark):
+    pattern = re.compile("ark:\d+/[\d,\w,-]+")
+
+    if pattern.match(ark):
+
+        return True
+
+    else:
+
+        return False
+
 def remove_file(bucket,location):
     minioClient = Minio('minionas.uvadcos.io',
                     access_key=access_key,
                     secret_key=secret_key,
                     secure=False)
 
+    try:
+
+        minioClient.remove_object(bucket,location)
+
+    except:
+
+        return False,'Object does not exist'
+
+    return True, ''
 def bucket_exists(bucketName):
 
     minioClient = Minio('minionas.uvadcos.io',
