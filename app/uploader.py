@@ -14,6 +14,15 @@ import flask
 
 app = Flask(__name__)
 
+root_dir = ''
+
+root_dir = '/Users/justinniestroy-admin/Documents'
+
+secret_key = os.environ['MINIO_SECRET_KEY']
+
+access_key = os.environ['MINIO_ACCESS_KEY']
+
+
 @app.route('/')
 def homepage():
     return render_template('upload_boot.html')
@@ -48,6 +57,7 @@ def delete_bucket(bucketName):
         return jsonify({'created':False,
                         'error':"Bucket name must be at least 3 characters"}),400
 
+
     if not bucket_exists(bucketName):
         return jsonify({'created':False,
                         'error':"Bucket does not exist"}),400
@@ -80,25 +90,42 @@ def create_bucket(bucketName):
 
     if error != "":
         return jsonify({'created':False,
-                        'error':"Probably cant connect"}),400
+                        'error':"Probably cant connect"}),500
 
-    return jsonify({'created':True})\
+    return jsonify({'created':True}),200
 
-@app.route('/download-files',methods = ['GET','POST'])
-def download_file():
-    cont_type = request.content_type
+@app.route('/download',methods = ['GET'])
+def download_file_html():
     if flask.request.method == 'GET':
         return render_template('download_homepage.html')
 
-    if request.data == b'':
-        return(jsonify({'error':"Please POST json with keys, Dataset Identifier, Job Identifier, and Main Function",'valid':False}))
 
-    try:
-        inputs = json.loads(request.data.decode('utf-8'))
-    except:
-        return(jsonify({'error':"Please POST JSON file",'valid':False}))
+from werkzeug.routing import PathConverter
 
-    download_id = inputs['Download Identifier']
+class EverythingConverter(PathConverter):
+    regex = '.*?'
+
+app.url_map.converters['everything'] = EverythingConverter
+
+@app.route('/download-files/<everything:download_id>',methods = ['GET','POST'])
+def download_file(download_id):
+    cont_type = request.content_type
+
+    inputs = {}
+
+    if flask.request.method == 'POST':
+        if request.data == b'':
+            return(jsonify({'error':"Please POST json with keys, Dataset Identifier, Job Identifier, and Main Function",'valid':False}))
+
+        try:
+            inputs = json.loads(request.data.decode('utf-8'))
+        except:
+            return jsonify({'error':"Please POST JSON file",'valid':False}),400
+        if 'Download Identifier' in inputs.keys():
+            download_id = inputs['Download Identifier']
+        else:
+            return jsonify({'error':"Missing required key: Download Identifier"}),400
+
 
     gave = False
 
@@ -108,18 +135,18 @@ def download_file():
         gave = True
 
     r = requests.get('http://ors.uvadcos.io/' + download_id)
-
+    print(r.content.decode())
     try:
 
         metareturned = r.json()
 
     except:
 
-        return jsonify({"error":"Improperly formatted Identifier"})
+        return jsonify({"error":"Improperly formatted Identifier"}),400
 
     if 'error' in metareturned.keys():
 
-        return(jsonify({'error':"Identifier does not exist"}))
+        return(jsonify({'error':"Identifier does not exist"})),400
 
     if gave:
         py_location = get_file(metareturned['distribution'],which_file,True)
@@ -129,15 +156,18 @@ def download_file():
 
 
     filename = py_location.split('/')[-1]
-    result = send_file(filename)
-    os.remove('/app/' + filename)
+    result = send_file(root_dir + '/app/' + filename)
+    os.remove(root_dir + '/app/' + filename)
 
     return result
 
 @app.route('/upload-files',methods = ['GET','POST'])
 def upload_files():
 
-    accept = request.headers.getlist('accept')[0]
+    accept = request.headers.getlist('accept')
+
+    if len(accept) > 0:
+        accept = accept[0]
 
     if flask.request.method== 'GET':
 
@@ -147,13 +177,13 @@ def upload_files():
 
         error = "Missing Metadata File. Must pass in file with name metadata"
 
-        return jsonify({'uploaded':False,"Error":error})
+        return jsonify({'uploaded':False,"Error":error}),400
 
     if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
 
         error = "Missing Data Files. Must pass in at least one file with name files"
 
-        return jsonify({'uploaded':False,"Error":error})
+        return jsonify({'uploaded':False,"Error":error}),400
 
     files, meta, folder = getUserInputs(request.files,request.form)
 
@@ -175,34 +205,20 @@ def upload_files():
 
         start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
-        #If API post not html page then files is dictionary where file
-        #is key and name of file and files[file] contians the actual data
-        #also if files is given
-
-        # if not files_list:
-        #
-        #     file_name = file
-        #
-        #     if file_name == 'file' or file_name == 'files':
-        #         file_name = files[file].filename.split('/')[-1]
-        #
-        #
-        #     file_data = files[file]
-        #
-        #     result = upload(files[file],file_name,folder)
-
-        #if using html files is list of files so file is file data for one file
-        #to so must get file name from file data
-        #else:
 
         file_name = file.filename.split('/')[-1]
 
+        current_id = mint_identifier(meta)
+
         file_data = file
+
+        file_name = current_id.split('/')[1]
 
         result = upload(file,file_name,folder)
 
         success = result['upload']
 
+        print(success)
         if success:
 
             obj_hash = get_obj_hash(file_name,folder)
@@ -211,15 +227,47 @@ def upload_files():
 
             location = result['location']
 
+            activity_meta = {
+                "@type":"eg:Activity",
+                "dateStarted":start_time,
+                "dateEnded":end_time,
+                "eg:usedSoftware":"Transfer Service",
+                'eg:usedDataset':file_name,
+                "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
+            }
+
+            act_id = mint_identifier(activity_meta)
+
+            file_meta = meta
+
+            file_meta['eg:generatedBy'] = act_id
+
+            file_meta['distribution'] = []
+
+            f = file_data
+            f.seek(0, os.SEEK_END)
+            size = f.tell()
+
+            file_meta['distribution'].append({
+                "@type":"DataDownload",
+                "name":file_name,
+                "fileFormat":file_name.split('.')[-1],
+                "contentSize":size,
+                "contentUrl":'minionas.uvadcos.io/' + location
+            })
+
+            download_id = mint_identifier(file_meta['distribution'][0])
+
+            file_meta['distribution'][0]['@id'] = download_id
+
             #Base meta taken from user
-            metareturned,file_meta = mintIdentifier(meta,start_time,end_time,file_name,location,obj_hash,file_data)
+            #metareturned,file_meta = mintIdentifier(meta,start_time,end_time,file_name,location,obj_hash,file_data)
 
-
-            if 'created' in metareturned.keys():
+            if current_id != 'error':
 
                 least_one = True
 
-                minted_id = metareturned['created']
+                minted_id = current_id
 
                 file_meta['@id'] = minted_id
 
@@ -229,7 +277,10 @@ def upload_files():
 
                 eg = make_eg(minted_id)
 
-                r = requests.put('http://ors.uvadcos.io/' + minted_id, data=json.dumps({'eg:evidenceGraph':eg}))
+                r = requests.put('http://ors.uvadcos.io/' + minted_id,
+                                data=json.dumps({'eg:evidenceGraph':eg,
+                                'eg:generatedBy':activity_meta,
+                                'distribution':file_meta['distribution']}))
 
             else:
 
@@ -247,7 +298,7 @@ def upload_files():
 
         if len(minted_ids) > 0:
 
-            minted_id = metareturned['created']
+            minted_id = current_id
 
             if 'text/html' in accept:
 
@@ -272,30 +323,67 @@ def upload_files():
 
     return jsonify({'error':'Files failed to upload.'}),400
 
+@app.route('/delte-file/<everything:ark>',methods = ['DELETE'])
+def delete_files(ark):
+
+    if valid_ark(ark):
+
+        if regestiredID(ark):
+
+            meta = getObjectMetadata(ark)
+
+        else:
+
+            return jsonify({"error":"Given Identifier not regesited"}),400
+
+    else:
+        return jsonify({"error":"Improperly formatted Identifier"}),400
+
+    minioLocation = meta['distribution'][0]['contentUrl']
+
+    bucket = minioLocation.split('/')[1]
+
+    location = '/'.join(minioLocation.split('/')[2:])
+
+    full = '/'.join(minioLocation.split('/')[1:])
+
+    success, error = remove_file(bucket,location)
+
+def remove_file(bucket,location):
+    minioClient = Minio('minionas.uvadcos.io',
+                    access_key=access_key,
+                    secret_key=secret_key,
+                    secure=False)
+
 def bucket_exists(bucketName):
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key='breakfast',
-                    secret_key='breakfast',
+                    access_key=access_key,
+                    secret_key=secret_key,
                     secure=False)
+
     try:
-        minioClient.bucket_exists(bucketName)
+
+        result = minioClient.bucket_exists(bucketName)
 
     except:
-        return True
 
-    return False
+        return False
+
+    return result
 
 def make_bucket(bucketName):
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key='breakfast',
-                    secret_key='breakfast',
+                    access_key=access_key,
+                    secret_key=secret_key,
                     secure=False)
     try:
         minioClient.make_bucket(bucketName)
 
     except:
+
         return "Error: Probably Connection"
+
     return ""
 
 def get_file(dist,which_file = '',gave = False):
@@ -368,17 +456,20 @@ def getUserInputs(requestFiles,requestForm):
 
 def delete_bucket(bucketName):
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key='breakfast',
-                    secret_key='breakfast',
+                    access_key=access_key,
+                    secret_key=secret_key,
                     secure=False)
     if bucketName == 'prevent' or bucketName == 'breakfast' or bucketName == 'puglia':
         return "Can't delete that bucket"
 
     try:
-        minioClient.delete_bucket(bucketName)
+
+        minioClient.remove_bucket(bucketName)
 
     except:
-        return "Probably Connection"
+
+        return "Minio Error Try Again"
+
     return ""
 
 def validate_inputs(files,meta):
@@ -395,6 +486,20 @@ def validate_inputs(files,meta):
         return False, "Submit at least one file"
 
     return True,''
+
+def mint_identifier(meta):
+
+    url = 'http://ors.uvadcos.io/shoulder/ark:99999'
+
+    #Create Identifier for each file uploaded
+    r = requests.post(url, data=json.dumps(meta))
+
+    if 'created' in r.json().keys():
+        id = r.json()['created']
+        return id
+    else:
+
+        return 'error'
 
 def mintIdentifier(meta,start_time,end_time,file_name,location,obj_hash,file_data):
         file_meta = meta
@@ -456,14 +561,14 @@ def mintIdentifier(meta,start_time,end_time,file_name,location,obj_hash,file_dat
 def download_script(bucket,location):
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key='breakfast',
-                    secret_key='breakfast',
+                    access_key=access_key,
+                    secret_key=secret_key,
                     secure=False)
 
     data = minioClient.get_object(bucket, location)
     file_name = location.split('/')[-1]
 
-    with open('/app/' + file_name, 'wb') as file_data:
+    with open(root_dir + '/app/' + file_name, 'wb') as file_data:
             for d in data.stream(32*1024):
                 file_data.write(d)
 
@@ -483,13 +588,13 @@ def upload(f,name,folder = ''):
     f.seek(0)
     if size == 0:
         return {'upload':False,'error':"Empty File"}
-    try:
-        minioClient.put_object('breakfast', folder +name, f,size)
+    # try:
 
-    except ResponseError as err:
-        print(err)
-        print('hi')
-        return {'upload':False}
+    minioClient.put_object('breakfast', folder + name, f, size)
+
+    # except ResponseError as err:
+    #
+    #     return {'upload':False}
 
     #f.save(secure_filename(f.filename))
     return {'upload':True,'location':'breakfast/' + folder + name}
@@ -497,8 +602,8 @@ def upload(f,name,folder = ''):
 def get_obj_hash(name,folder = ''):
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key='breakfast',
-                    secret_key='breakfast',
+                    access_key=access_key,
+                    secret_key=secret_key,
                     secure=False)
 
     result = minioClient.stat_object('breakfast', folder + name)
@@ -564,20 +669,20 @@ def stardog_eg_csv(ark):
         conn.begin()
     #results = conn.select('select * { ?a ?p ?o }')
         results = conn.paths("PATHS START ?x=<"+ ark + "> END ?y VIA ?p",content_type='text/csv')
-    with open('/star/test.csv','wb') as f:
+    with open(root_dir + '/star/test.csv','wb') as f:
         f.write(results)
 
     return
 
 def make_eg(ark):
     stardog_eg_csv(ark)
-    data = pd.read_csv('/star/test.csv')
+    data = pd.read_csv(root_dir + '/star/test.csv')
     eg = build_evidence_graph(data)
     clean_up()
     return eg
 
 def create_named_graph(meta,id):
-    with open('/star/meta.json','w') as f:
+    with open(root_dir + '/star/meta.json','w') as f:
         json.dump(meta, f)
     conn_details = {
         'endpoint': 'http://stardog.uvadcos.io',
@@ -586,7 +691,7 @@ def create_named_graph(meta,id):
     }
     with stardog.Connection('db', **conn_details) as conn:
         conn.begin()
-        conn.add(stardog.content.File("/star/meta.json"),graph_uri='http://ors.uvadcos/'+id)
+        conn.add(stardog.content.File(root_dir + "/star/meta.json"),graph_uri='http://ors.uvadcos/'+id)
         conn.commit()
     # cmd = 'stardog data add --named-graph http://ors.uvadcos.io/' + id + ' -f JSONLD test "/star/meta.json"'
     # test = os.system(cmd)
@@ -594,7 +699,7 @@ def create_named_graph(meta,id):
     return
 
 def clean_up():
-    os.system('rm /star/*')
+    os.system('rm ' + root_dir + '/star/*')
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',debug = True)

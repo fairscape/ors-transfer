@@ -1,0 +1,38 @@
+{
+  "@context":{
+    "@vocab":"http://schema.org/"
+  },
+  "@type":"Dataset",
+  "description":"Spark Test Data Set",
+  "folder":"Test",
+  "creator":[
+    {
+      "name":"Justin Niestroy",
+      "affiliation":"University of Virginia"
+      }
+    ],
+  "author":[
+    {
+      "name":"Justin Niestroy",
+      "affiliation":"University of Virginia"
+      }
+    ],
+    "distribution": [
+      {
+        "@type":"DataDownload",
+        "name":"random.csv",
+        "fileFormat":"csv",
+        "contentSize":6300,
+        "description":"Random numbers.",
+        "contentUrl":"minionas.uvadcos.io/breakfast/random.csv"
+      },
+     {
+        "@type":"DataDownload",
+        "name":"rand2om.csv",
+        "fileFormat":"csv",
+        "contentSize":6300,
+        "description":"Random numbers.",
+        "contentUrl":"minionas.uvadcos.io/breakfast/random.csv"
+      }
+    ]
+}
