@@ -579,8 +579,8 @@ def upload(f,name,folder = ''):
     #filename = get_filename(file)
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key='breakfast',
-                    secret_key='breakfast',
+                    access_key=access_key,
+                    secret_key=secret_key,
                     secure=False)
 
     f.seek(0, os.SEEK_END)
