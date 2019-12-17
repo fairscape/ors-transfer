@@ -2,7 +2,7 @@ import unittest
 import sys
 import requests
 sys.path.append(".")
-import app as up
+import uploader as up
 import pandas as pd
 import json
 import io
