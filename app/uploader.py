@@ -12,6 +12,7 @@ import warnings
 import stardog
 import flask
 import re
+from werkzeug.routing import PathConverter
 
 
 app = Flask(__name__)
@@ -24,6 +25,10 @@ secret_key = os.environ['MINIO_SECRET_KEY']
 
 access_key = os.environ['MINIO_ACCESS_KEY']
 
+class EverythingConverter(PathConverter):
+    regex = '.*?'
+
+app.url_map.converters['everything'] = EverythingConverter
 
 @app.route('/')
 def homepage():
@@ -48,7 +53,7 @@ def run_job():
     return r.content.decode()
 
 @app.route('/delete-bucket/<bucketName>',methods = ['DELETE'])
-def delete_bucket(bucketName):
+def remove_bucket(bucketName):
     #################
     #
     #if auth
@@ -57,16 +62,16 @@ def delete_bucket(bucketName):
 
     if len(bucketName) < 3:
         return jsonify({'created':False,
-                        'error':"Bucket name must be at least 3 characters"}),400
+                        'error':"Bucket does not exist"}),400
 
 
     if not bucket_exists(bucketName):
         return jsonify({'created':False,
                         'error':"Bucket does not exist"}),400
 
-    error = delete_bucket(bucketName)
+    success, error = delete_bucket(bucketName)
 
-    if error != "":
+    if not success:
         return jsonify({'created':False,
                         'error':error}),400
 
@@ -88,9 +93,9 @@ def create_bucket(bucketName):
         return jsonify({'created':False,
                         'error':"Bucket with that name already exists"}),400
 
-    error = make_bucket(bucketName)
+    success, error = make_bucket(bucketName)
 
-    if error != "":
+    if not success:
         return jsonify({'created':False,
                         'error':"Probably cant connect"}),500
 
@@ -102,63 +107,27 @@ def download_file_html():
         return render_template('download_homepage.html')
 
 
-from werkzeug.routing import PathConverter
-
-class EverythingConverter(PathConverter):
-    regex = '.*?'
-
-app.url_map.converters['everything'] = EverythingConverter
-
-@app.route('/download-files/<everything:download_id>',methods = ['GET','POST'])
+@app.route('/download-files/<everything:download_id>',methods = ['GET'])
 def download_file(download_id):
-    cont_type = request.content_type
 
-    inputs = {}
-
-    if flask.request.method == 'POST':
-        if request.data == b'':
-            return(jsonify({'error':"Please POST json with keys, Dataset Identifier, Job Identifier, and Main Function",'valid':False}))
-
-        try:
-            inputs = json.loads(request.data.decode('utf-8'))
-        except:
-            return jsonify({'error':"Please POST JSON file",'valid':False}),400
-        if 'Download Identifier' in inputs.keys():
-            download_id = inputs['Download Identifier']
-        else:
-            return jsonify({'error':"Missing required key: Download Identifier"}),400
-
-
-    gave = False
-
-    if 'distribution'in inputs:
-
-        which_file = inputs['distribution']
-        gave = True
-
-    r = requests.get('http://ors.uvadcos.io/' + download_id)
-    print(r.content.decode())
-    try:
-
-        metareturned = r.json()
-
-    except:
+    if not valid_ark(download_id):
 
         return jsonify({"error":"Improperly formatted Identifier"}),400
+
+    r = requests.get('http://ors.uvadcos.io/' + download_id)
+
+    metareturned = r.json()
 
     if 'error' in metareturned.keys():
 
         return(jsonify({'error':"Identifier does not exist"})),400
 
-    if gave:
-        py_location = get_file(metareturned['distribution'],which_file,True)
+    location = get_file(metareturned['distribution'])
 
-    else:
-        py_location = get_file(metareturned['distribution'])
+    filename = location.split('/')[-1]
 
-
-    filename = py_location.split('/')[-1]
     result = send_file(root_dir + '/app/' + filename)
+
     os.remove(root_dir + '/app/' + filename)
 
     return result
@@ -207,7 +176,6 @@ def upload_files():
 
         start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
-
         file_name = file.filename.split('/')[-1]
 
         current_id = mint_identifier(meta)
@@ -220,7 +188,7 @@ def upload_files():
 
         success = result['upload']
 
-        print(success)
+
         if success:
 
             obj_hash = get_obj_hash(file_name,folder)
@@ -286,11 +254,11 @@ def upload_files():
 
             else:
 
-                failed_to_mint.append(file)
+                failed_to_mint.append(file.filename)
 
         else:
 
-            upload_failures.append(file)
+            upload_failures.append(file.filename)
 
     if len(upload_failures) == 0:
 
@@ -327,7 +295,7 @@ def upload_files():
 
 @app.route('/delete-file/<everything:ark>',methods = ['DELETE'])
 def delete_files(ark):
-    print(ark)
+
     if valid_ark(ark):
 
         req = requests.get("http://ors.uvadcos.io/" + ark)
@@ -359,8 +327,6 @@ def delete_files(ark):
     bucket = minioLocation.split('/')[1]
 
     location = '/'.join(minioLocation.split('/')[2:])
-
-    full = '/'.join(minioLocation.split('/')[1:])
 
     success, error = remove_file(bucket,location)
 
@@ -406,6 +372,7 @@ def remove_file(bucket,location):
         return False,'Object does not exist'
 
     return True, ''
+
 def bucket_exists(bucketName):
 
     minioClient = Minio('minionas.uvadcos.io',
@@ -433,9 +400,9 @@ def make_bucket(bucketName):
 
     except:
 
-        return "Error: Probably Connection"
+        return False,"Error: Probably Connection"
 
-    return ""
+    return True,""
 
 def get_file(dist,which_file = '',gave = False):
     for file in dist:
@@ -519,9 +486,9 @@ def delete_bucket(bucketName):
 
     except:
 
-        return "Minio Error Try Again"
+        return False,"Minio Error Try Again"
 
-    return ""
+    return True,""
 
 def validate_inputs(files,meta):
 
