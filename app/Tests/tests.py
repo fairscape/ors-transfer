@@ -201,6 +201,23 @@ class test_app(unittest.TestCase):
 
         self.assertFalse(r)
 
+    def test_delete(self):
+
+        ark  = "ark:/999/123"
+
+        req = self.app.delete('delete-file/' + ark)
+
+        self.assertEqual(req.status_code,400)
+
+    def test_delete2(self):
+
+        ark  = "ark:9999/123"
+
+        req = self.app.delete('delete-file/' + ark)
+
+        self.assertEqual(req.status_code,400)
+
+
 if __name__ == '__main__':
     unittest.main()
 
