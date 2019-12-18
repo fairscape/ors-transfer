@@ -132,7 +132,7 @@ def download_file(download_id):
 
     return result
 
-@app.route('/upload-files',methods = ['GET','POST'])
+@app.route('/upload-files',methods = ['POST'])
 def upload_files():
 
     accept = request.headers.getlist('accept')
@@ -231,7 +231,6 @@ def upload_files():
             file_meta['distribution'][0]['@id'] = download_id
 
             #Base meta taken from user
-            #metareturned,file_meta = mintIdentifier(meta,start_time,end_time,file_name,location,obj_hash,file_data)
 
             if current_id != 'error':
 
@@ -519,62 +518,7 @@ def mint_identifier(meta):
 
         return 'error'
 
-def mintIdentifier(meta,start_time,end_time,file_name,location,obj_hash,file_data):
-        file_meta = meta
 
-        #add in prov about upload process
-        file_meta['eg:generatedBy'] = {
-            "@type":"eg:Activity",
-            "dateStarted":start_time,
-            "dateEnded":end_time,
-            "eg:usedSoftware":"Transfer Service",
-            'eg:usedDataset':file_name,
-            "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
-        }
-
-        url = 'http://ors.uvadcos.io/shoulder/ark:99999'
-
-        #Create Identifier for each file uploaded
-        r = requests.post(url, data=json.dumps(file_meta))
-
-        file_meta['eg:generatedBy']['@id'] = r.json()['created']
-
-        least_one = True
-
-        file_meta['distribution'] = []
-
-        if 'distribution' not in file_meta.keys():
-            file_meta['distribution'] = []
-
-        elif not isinstance(file_meta['distribution'],list):
-            file_meta['distribution'] = [file_meta['distribution']]
-
-        f = file_data
-        f.seek(0, os.SEEK_END)
-        size = f.tell()
-
-
-        file_meta['distribution'].append({
-            "@type":"DataDownload",
-            "name":file_name,
-            "fileFormat":file_name.split('.')[-1],
-            "contentSize":size,
-            "contentUrl":'minionas.uvadcos.io/' + location
-        })
-
-        url = 'http://ors.uvadcos.io/shoulder/ark:99999'
-
-        r = requests.post(url, data=json.dumps(file_meta['distribution'][0]))
-
-        download_id = r.json()['created']
-
-        file_meta['distribution'][0]['@id'] = download_id
-
-        r = requests.post(url, data=json.dumps(file_meta))
-
-        metareturned = r.json()
-
-        return metareturned,file_meta
 
 def download_script(bucket,location):
 
