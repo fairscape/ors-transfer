@@ -6,28 +6,45 @@ info:
 servers:
   - url: 'http://data.uvadcos.io'
 paths:
+
   /:
     get:
-      description: Download Homepage
+      description: Upload Homepage
       responses:
         '200':
-          description: HTML Download Page
+          description: HTML Upload Page
       servers:
         - url: 'http://data.uvadcos.io'
     servers:
       - url: 'http://data.uvadcos.io'
-  /upload-files:
+
+  /data/{ark}:
     get:
-      description: Download Homepage HTML Version
+      summary: Returns file associated with given Identifier
+      parameters:
+        - in: path
+          name: ark
+          schema:
+            type: string
+          required: true
+          description: Minted Identifier of desired
       responses:
         '200':
-          description: HTML Download Page
+          description: File downloaded
+        '400':
+          description: "Improperly formatted ID/ID not registered"
       servers:
         - url: 'http://data.uvadcos.io'
-    servers:
-      - url: 'http://data.uvadcos.io'
     post:
+      summary: Uploads file with metadata to ORS
       description: File Upload End-point
+      parameters:
+        - in: path
+          name: ark
+          schema:
+            type: string
+          required: false
+          description: Desired Identifier
       responses:
         '200':
           description: File uploaded successfully and minted new id
@@ -37,41 +54,72 @@ paths:
             schema:
               type: object
               properties:
-                file:
-                  type: string
-                  format: binary
+                files:
+                  type: array
+                  items:
+                    type: string
+                    format: binary
                 metadata:
                   type: string
-
-
-  /download-files:
-    post:
-      description: Download File of given Identifier
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                Download Identifier:
-                  type: string
-            examples:
-              '0':
-                value: |
-                  {
-                      "Download Identifier":"ark:99999/6521e5fd-5ce7-4681-b35e-dd575c7c293a"
-                  }
+                  format: binary
+    delete:
+      summary: Deletes an object from minio
+      parameters:
+        - in: path
+          name: ark
+          schema:
+            type: string
+          required: true
+          description: Identifer of object
       responses:
         '200':
-          description: File downloaded
+          description: File Deleted
         '400':
-          description: "Improperly formatted ID/ID not registered"
+          description: Improperly formatted ID/ID not registered
       servers:
         - url: 'http://data.uvadcos.io'
     servers:
       - url: 'http://data.uvadcos.io'
-  /run-job:
+
+  /bucket/{bucketName}/:
+    get:
+      summary: Create a bucket in minio
+      parameters:
+        - in: path
+          name: bucketName
+          schema:
+            type: string
+          required: true
+          description: Name of new bucket
+      responses:
+        '200':
+          description: File downloaded
+        '400':
+          description: "Bucket already exists"
+      servers:
+        - url: 'http://data.uvadcos.io'
+    servers:
+      - url: 'http://data.uvadcos.io'
+    delete:
+      summary: Deletes a bucket in minio
+      parameters:
+        - in: path
+          name: bucketName
+          schema:
+            type: string
+          required: true
+          description: Name of bucket to be deleted
+      responses:
+        '200':
+          description: Bucket Deleted
+        '400':
+          description: "Bucket does not exist"
+      servers:
+        - url: 'http://data.uvadcos.io'
+
+  /run-job/:
     post:
+      summary: Runs Spark job on given dataset
       description: Run Job using spark using dataset and software ID's
       requestBody:
         content:
@@ -93,6 +141,18 @@ paths:
       responses:
         '200':
           description: Job Run Successfully
+      servers:
+        - url: 'http://data.uvadcos.io'
+    servers:
+      - url: 'http://data.uvadcos.io'
+
+  /download-html/:
+    get:
+      summary: HTML Download Page
+      description: HTML Page to download file for Identifier
+      responses:
+        '200':
+          description: HTML Download Page
       servers:
         - url: 'http://data.uvadcos.io'
     servers:
