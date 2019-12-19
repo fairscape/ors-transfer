@@ -52,290 +52,309 @@ def run_job():
 
     return r.content.decode()
 
-@app.route('/delete-bucket/<bucketName>',methods = ['DELETE'])
-def remove_bucket(bucketName):
+
+
+@app.route('/bucket/<bucketName>',methods = ['GET','DELETE'])
+def bucket(bucketName):
     #################
     #
     #if auth
     #
     ##################
-
-    if len(bucketName) < 3:
-        return jsonify({'created':False,
-                        'error':"Bucket does not exist"}),400
-
-
-    if not bucket_exists(bucketName):
-        return jsonify({'created':False,
-                        'error':"Bucket does not exist"}),400
-
-    success, error = delete_bucket(bucketName)
-
-    if not success:
-        return jsonify({'created':False,
-                        'error':error}),400
-
-    return jsonify({'deleted':True})
-
-@app.route('/create-bucket/<bucketName>',methods = ['GET'])
-def create_bucket(bucketName):
-    #################
-    #
-    #if auth
-    #
-    ##################
-
-    if len(bucketName) < 3:
-        return jsonify({'created':False,
-                        'error':"Bucket name must be at least 3 characters"}),400
-
-    if bucket_exists(bucketName):
-        return jsonify({'created':False,
-                        'error':"Bucket with that name already exists"}),400
-
-    success, error = make_bucket(bucketName)
-
-    if not success:
-        return jsonify({'created':False,
-                        'error':"Probably cant connect"}),500
-
-    return jsonify({'created':True}),200
-
-@app.route('/download',methods = ['GET'])
-def download_file_html():
     if flask.request.method == 'GET':
-        return render_template('download_homepage.html')
+        if len(bucketName) < 3:
+            return jsonify({'created':False,
+                            'error':"Bucket name must be at least 3 characters"}),400
+
+        if bucket_exists(bucketName):
+            return jsonify({'created':False,
+                            'error':"Bucket with that name already exists"}),400
+
+        success, error = make_bucket(bucketName)
+
+        if not success:
+            return jsonify({'created':False,
+                            'error':"Probably cant connect"}),500
+
+        return jsonify({'created':True}),200
+
+    if flask.request.method == 'DELETE':
+        if len(bucketName) < 3:
+            return jsonify({'created':False,
+                            'error':"Bucket does not exist"}),400
+
+        if not bucket_exists(bucketName):
+            return jsonify({'created':False,
+                            'error':"Bucket does not exist"}),400
+
+        success, error = delete_bucket(bucketName)
+
+        if not success:
+            return jsonify({'created':False,
+                            'error':error}),400
+
+        return jsonify({'deleted':True})
 
 
-@app.route('/download-files/<everything:download_id>',methods = ['GET'])
-def download_file(download_id):
 
-    if not valid_ark(download_id):
+@app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE'])
+def all(ark):
 
-        return jsonify({"error":"Improperly formatted Identifier"}),400
+    if flask.request.method == 'GET':
 
-    r = requests.get('http://ors.uvadcos.io/' + download_id)
+        accept = gather_accepted(request.headers.getlist('accept'))
 
-    metareturned = r.json()
+        if not valid_ark(ark):
 
-    if 'error' in metareturned.keys():
+            return jsonify({"error":"Improperly formatted Identifier"}),400
 
-        return(jsonify({'error':"Identifier does not exist"})),400
+        r = requests.get('http://ors.uvadcos.io/' + ark)
 
-    location = get_file(metareturned['distribution'])
+        metareturned = r.json()
 
-    filename = location.split('/')[-1]
+        if 'error' in metareturned.keys():
 
-    result = send_file(root_dir + '/app/' + filename)
+            return(jsonify({'error':"Identifier does not exist"})),400
 
-    os.remove(root_dir + '/app/' + filename)
+        location = get_file(metareturned['distribution'])
 
-    return result
+        filename = location.split('/')[-1]
 
-@app.route('/upload-files',methods = ['POST'])
-def upload_files():
+        result = send_file(root_dir + '/app/' + filename)
 
-    accept = request.headers.getlist('accept')
+        os.remove(root_dir + '/app/' + filename)
 
-    if len(accept) > 0:
-        accept = accept[0]
+        return result
 
-    if flask.request.method== 'GET':
+#########################
+#
+# Post Endppint
+#
+##########################
 
-        return render_template('upload_boot.html')
+    elif flask.request.method == 'POST':
+        accept = request.headers.getlist('accept')
 
-    if 'metadata' not in request.files.keys():
-
-        error = "Missing Metadata File. Must pass in file with name metadata"
-
-        return jsonify({'uploaded':False,"Error":error}),400
-
-    if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
-
-        error = "Missing Data Files. Must pass in at least one file with name files"
-
-        return jsonify({'uploaded':False,"Error":error}),400
-
-    files, meta, folder = getUserInputs(request.files,request.form)
-
-    valid, error = validate_inputs(files,meta)
-
-    if not valid:
-
-        return jsonify({'uploaded':False,"Error":error}),400
+        if len(accept) > 0:
+            accept = accept[0]
 
 
-    upload_failures = []
-    minted_ids = []
-    failed_to_mint = []
+        if 'metadata' not in request.files.keys():
 
-    least_one = False
-    full_upload = False
+            error = "Missing Metadata File. Must pass in file with name metadata"
 
-    for file in files:
+            return jsonify({'uploaded':False,"Error":error}),400
 
-        start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+        if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
 
-        file_name = file.filename.split('/')[-1]
+            error = "Missing Data Files. Must pass in at least one file with name files"
 
-        current_id = mint_identifier(meta)
+            return jsonify({'uploaded':False,"Error":error}),400
 
-        file_data = file
+        files, meta, folder = getUserInputs(request.files,request.form)
 
-        file_name = current_id.split('/')[1]
+        if 'bucket' in meta.keys():
+            bucket = meta['bucket']
+        else:
+            bucket = 'breakfast'
 
-        result = upload(file,file_name,folder)
+        valid, error = validate_inputs(files,meta)
 
-        success = result['upload']
+        if not valid:
+
+            return jsonify({'uploaded':False,"Error":error}),400
 
 
-        if success:
+        upload_failures = []
+        minted_ids = []
+        failed_to_mint = []
 
-            obj_hash = get_obj_hash(file_name,folder)
+        least_one = False
+        full_upload = False
 
-            end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+        for file in files:
 
-            location = result['location']
+            start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
-            activity_meta = {
-                "@type":"eg:Activity",
-                "dateStarted":start_time,
-                "dateEnded":end_time,
-                "eg:usedSoftware":"Transfer Service",
-                'eg:usedDataset':file_name,
-                "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
-            }
+            file_name = file.filename.split('/')[-1]
 
-            act_id = mint_identifier(activity_meta)
+            current_id = mint_identifier(meta)
 
-            file_meta = meta
+            file_data = file
 
-            file_meta['eg:generatedBy'] = act_id
+            file_name = current_id.split('/')[1]
 
-            file_meta['distribution'] = []
+            result = upload(file,file_name,bucket,folder)
 
-            f = file_data
-            f.seek(0, os.SEEK_END)
-            size = f.tell()
+            success = result['upload']
 
-            file_meta['distribution'].append({
-                "@type":"DataDownload",
-                "name":file_name,
-                "fileFormat":file_name.split('.')[-1],
-                "contentSize":size,
-                "contentUrl":'minionas.uvadcos.io/' + location
-            })
 
-            download_id = mint_identifier(file_meta['distribution'][0])
+            if success:
 
-            file_meta['distribution'][0]['@id'] = download_id
+                obj_hash = get_obj_hash(file_name,folder)
 
-            #Base meta taken from user
+                end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
-            if current_id != 'error':
+                location = result['location']
 
-                least_one = True
+                activity_meta = {
+                    "@type":"eg:Activity",
+                    "dateStarted":start_time,
+                    "dateEnded":end_time,
+                    "eg:usedSoftware":"Transfer Service",
+                    'eg:usedDataset':file_name,
+                    "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
+                }
 
-                minted_id = current_id
+                act_id = mint_identifier(activity_meta)
 
-                file_meta['@id'] = minted_id
+                file_meta = meta
 
-                minted_ids.append(minted_id)
+                file_meta['eg:generatedBy'] = act_id
 
-                create_named_graph(file_meta,minted_id)
+                file_meta['distribution'] = []
 
-                eg = make_eg(minted_id)
+                f = file_data
+                f.seek(0, os.SEEK_END)
+                size = f.tell()
 
-                r = requests.put('http://ors.uvadcos.io/' + minted_id,
-                                data=json.dumps({'eg:evidenceGraph':eg,
-                                'eg:generatedBy':activity_meta,
-                                'distribution':file_meta['distribution']}))
+                file_meta['distribution'].append({
+                    "@type":"DataDownload",
+                    "name":file_name,
+                    "fileFormat":file_name.split('.')[-1],
+                    "contentSize":size,
+                    "contentUrl":'minionas.uvadcos.io/' + location
+                })
+
+                download_id = mint_identifier(file_meta['distribution'][0])
+
+                file_meta['distribution'][0]['@id'] = download_id
+
+                #Base meta taken from user
+
+                if current_id != 'error':
+
+                    least_one = True
+
+                    minted_id = current_id
+
+                    file_meta['@id'] = minted_id
+
+                    minted_ids.append(minted_id)
+
+                    create_named_graph(file_meta,minted_id)
+
+                    eg = make_eg(minted_id)
+
+                    r = requests.put('http://ors.uvadcos.io/' + minted_id,
+                                    data=json.dumps({'eg:evidenceGraph':eg,
+                                    'eg:generatedBy':activity_meta,
+                                    'distribution':file_meta['distribution']}))
+
+                else:
+
+                    failed_to_mint.append(file.filename)
 
             else:
 
-                failed_to_mint.append(file.filename)
+                upload_failures.append(file.filename)
+
+        if len(upload_failures) == 0:
+
+            full_upload = True
+
+        if least_one:
+
+            if len(minted_ids) > 0:
+
+                minted_id = current_id
+
+                if 'text/html' in accept:
+
+                    return render_template('success.html',id = minted_id)
+
+                return jsonify({'All files uploaded':full_upload,
+                                'failed to upload':upload_failures,
+                                'Minted Identifiers':minted_ids,
+                                'Failed to mint Id for':failed_to_mint
+                                }),200
+
+            else:
+
+                return jsonify({'All files uploaded':full_upload,
+                                'failed to upload':upload_failures,
+                                'Minted Identifiers':minted_ids,
+                                'Failed to mint Id for':failed_to_mint
+                                }),200
+        if 'text/html' in accept:
+
+            return render_template('failure.html')
+
+        return jsonify({'error':'Files failed to upload.'}),400
+
+#########################
+#
+# Delete Endpoint
+#
+##########################
+    elif flask.request.method == 'DELETE':
+
+        if valid_ark(ark):
+
+            req = requests.get("http://ors.uvadcos.io/" + ark)
+
+            if regestiredID(req.json()):
+
+                meta = req.json()
+
+            else:
+
+                return jsonify({"error":"Given Identifier not regesited"}),400
 
         else:
+            return jsonify({"error":"Improperly formatted Identifier"}),400
 
-            upload_failures.append(file.filename)
+        if 'distribution' in meta.keys():
+            if isinstance(meta['distribution'],list):
+                if 'contentUrl' in meta['distribution'][0].keys():
 
-    if len(upload_failures) == 0:
+                    minioLocation = meta['distribution'][0]['contentUrl']
 
-        full_upload = True
-
-    if least_one:
-
-        if len(minted_ids) > 0:
-
-            minted_id = current_id
-
-            if 'text/html' in accept:
-
-                return render_template('success.html',id = minted_id)
-
-            return jsonify({'All files uploaded':full_upload,
-                            'failed to upload':upload_failures,
-                            'Minted Identifiers':minted_ids,
-                            'Failed to mint Id for':failed_to_mint
-                            }),200
-
-        else:
-
-            return jsonify({'All files uploaded':full_upload,
-                            'failed to upload':upload_failures,
-                            'Minted Identifiers':minted_ids,
-                            'Failed to mint Id for':failed_to_mint
-                            }),200
-    if 'text/html' in accept:
-
-        return render_template('failure.html')
-
-    return jsonify({'error':'Files failed to upload.'}),400
-
-@app.route('/delete-file/<everything:ark>',methods = ['DELETE'])
-def delete_files(ark):
-
-    if valid_ark(ark):
-
-        req = requests.get("http://ors.uvadcos.io/" + ark)
-
-        if regestiredID(req.json()):
-
-            meta = req.json()
-
-        else:
-
-            return jsonify({"error":"Given Identifier not regesited"}),400
-
-    else:
-        return jsonify({"error":"Improperly formatted Identifier"}),400
-
-    if 'distribution' in meta.keys():
-        if isinstance(meta['distribution'],list):
-            if 'contentUrl' in meta['distribution'][0].keys():
-
-                minioLocation = meta['distribution'][0]['contentUrl']
-
+                else:
+                    return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
             else:
                 return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
         else:
             return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
-    else:
-        return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
 
-    bucket = minioLocation.split('/')[1]
+        bucket = minioLocation.split('/')[1]
 
-    location = '/'.join(minioLocation.split('/')[2:])
+        location = '/'.join(minioLocation.split('/')[2:])
 
-    success, error = remove_file(bucket,location)
+        success, error = remove_file(bucket,location)
 
-    if success:
+        if success:
 
-        return jsonify({'deleted':True}),200
+            return jsonify({'deleted':True}),200
 
-    else:
+        else:
 
-        return jsonify({'deleted':False,'error':error}),400
+            return jsonify({'deleted':False,'error':error}),400
+
+@app.route('/download-html/',methods = ['GET'])
+def download_html():
+    return render_template('download_homepage.html')
+
+
+def gather_accepted(accepted_list):
+    if len(accepted_list) > 0:
+        full_accepted = []
+        for value in accepted:
+            items = value.split(',')
+            for item in items:
+                full_accepted.append(item)
+        return full_accepted
+    return []
 
 def regestiredID(result):
 
@@ -536,7 +555,7 @@ def download_script(bucket,location):
 
     return './' + file_name
 
-def upload(f,name,folder = ''):
+def upload(f,name,bucket,folder = ''):
 
     #filename = get_filename(file)
 
@@ -552,7 +571,7 @@ def upload(f,name,folder = ''):
         return {'upload':False,'error':"Empty File"}
     # try:
 
-    minioClient.put_object('breakfast', folder + name, f, size)
+    minioClient.put_object(bucket, folder + name, f, size)
 
     # except ResponseError as err:
     #
@@ -665,3 +684,243 @@ def clean_up():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',debug = True)
+
+# @app.route('/upload',methods = ['POST','GET'])
+# def upload_files():
+#
+#     accept = request.headers.getlist('accept')
+#
+#     if len(accept) > 0:
+#         accept = accept[0]
+#
+#     if flask.request.method== 'GET':
+#
+#         return render_template('upload_boot.html')
+#
+#     if 'metadata' not in request.files.keys():
+#
+#         error = "Missing Metadata File. Must pass in file with name metadata"
+#
+#         return jsonify({'uploaded':False,"Error":error}),400
+#
+#     if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
+#
+#         error = "Missing Data Files. Must pass in at least one file with name files"
+#
+#         return jsonify({'uploaded':False,"Error":error}),400
+#
+#     files, meta, folder = getUserInputs(request.files,request.form)
+#
+#     if 'bucket' in meta.keys():
+#         bucket = meta['bucket']
+#     else:
+#         bucket = 'breakfast'
+#
+#     valid, error = validate_inputs(files,meta)
+#
+#     if not valid:
+#
+#         return jsonify({'uploaded':False,"Error":error}),400
+#
+#
+#     upload_failures = []
+#     minted_ids = []
+#     failed_to_mint = []
+#
+#     least_one = False
+#     full_upload = False
+#
+#     for file in files:
+#
+#         start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+#
+#         file_name = file.filename.split('/')[-1]
+#
+#         current_id = mint_identifier(meta)
+#
+#         file_data = file
+#
+#         file_name = current_id.split('/')[1]
+#
+#         result = upload(file,file_name,bucket,folder)
+#
+#         success = result['upload']
+#
+#
+#         if success:
+#
+#             obj_hash = get_obj_hash(file_name,folder)
+#
+#             end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+#
+#             location = result['location']
+#
+#             activity_meta = {
+#                 "@type":"eg:Activity",
+#                 "dateStarted":start_time,
+#                 "dateEnded":end_time,
+#                 "eg:usedSoftware":"Transfer Service",
+#                 'eg:usedDataset':file_name,
+#                 "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
+#             }
+#
+#             act_id = mint_identifier(activity_meta)
+#
+#             file_meta = meta
+#
+#             file_meta['eg:generatedBy'] = act_id
+#
+#             file_meta['distribution'] = []
+#
+#             f = file_data
+#             f.seek(0, os.SEEK_END)
+#             size = f.tell()
+#
+#             file_meta['distribution'].append({
+#                 "@type":"DataDownload",
+#                 "name":file_name,
+#                 "fileFormat":file_name.split('.')[-1],
+#                 "contentSize":size,
+#                 "contentUrl":'minionas.uvadcos.io/' + location
+#             })
+#
+#             download_id = mint_identifier(file_meta['distribution'][0])
+#
+#             file_meta['distribution'][0]['@id'] = download_id
+#
+#             #Base meta taken from user
+#
+#             if current_id != 'error':
+#
+#                 least_one = True
+#
+#                 minted_id = current_id
+#
+#                 file_meta['@id'] = minted_id
+#
+#                 minted_ids.append(minted_id)
+#
+#                 create_named_graph(file_meta,minted_id)
+#
+#                 eg = make_eg(minted_id)
+#
+#                 r = requests.put('http://ors.uvadcos.io/' + minted_id,
+#                                 data=json.dumps({'eg:evidenceGraph':eg,
+#                                 'eg:generatedBy':activity_meta,
+#                                 'distribution':file_meta['distribution']}))
+#
+#             else:
+#
+#                 failed_to_mint.append(file.filename)
+#
+#         else:
+#
+#             upload_failures.append(file.filename)
+#
+#     if len(upload_failures) == 0:
+#
+#         full_upload = True
+#
+#     if least_one:
+#
+#         if len(minted_ids) > 0:
+#
+#             minted_id = current_id
+#
+#             if 'text/html' in accept:
+#
+#                 return render_template('success.html',id = minted_id)
+#
+#             return jsonify({'All files uploaded':full_upload,
+#                             'failed to upload':upload_failures,
+#                             'Minted Identifiers':minted_ids,
+#                             'Failed to mint Id for':failed_to_mint
+#                             }),200
+#
+#         else:
+#
+#             return jsonify({'All files uploaded':full_upload,
+#                             'failed to upload':upload_failures,
+#                             'Minted Identifiers':minted_ids,
+#                             'Failed to mint Id for':failed_to_mint
+#                             }),200
+#     if 'text/html' in accept:
+#
+#         return render_template('failure.html')
+#
+#     return jsonify({'error':'Files failed to upload.'}),400
+
+# @app.route('/delete-file/<everything:ark>',methods = ['DELETE'])
+# def delete_files(ark):
+#
+#     if valid_ark(ark):
+#
+#         req = requests.get("http://ors.uvadcos.io/" + ark)
+#
+#         if regestiredID(req.json()):
+#
+#             meta = req.json()
+#
+#         else:
+#
+#             return jsonify({"error":"Given Identifier not regesited"}),400
+#
+#     else:
+#         return jsonify({"error":"Improperly formatted Identifier"}),400
+#
+#     if 'distribution' in meta.keys():
+#         if isinstance(meta['distribution'],list):
+#             if 'contentUrl' in meta['distribution'][0].keys():
+#
+#                 minioLocation = meta['distribution'][0]['contentUrl']
+#
+#             else:
+#                 return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+#         else:
+#             return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+#     else:
+#         return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+#
+#     bucket = minioLocation.split('/')[1]
+#
+#     location = '/'.join(minioLocation.split('/')[2:])
+#
+#     success, error = remove_file(bucket,location)
+#
+#     if success:
+#
+#         return jsonify({'deleted':True}),200
+#
+#     else:
+#
+#         return jsonify({'deleted':False,'error':error}),400
+
+# @app.route('/download/<everything:download_id>',methods = ['GET'])
+# def download_file(download_id):
+#
+#     accept = request.headers.getlist('accept')
+#
+#     if len(accept) > 0:
+#         accept = accept[0]
+#
+#     if not valid_ark(download_id):
+#
+#         return jsonify({"error":"Improperly formatted Identifier"}),400
+#
+#     r = requests.get('http://ors.uvadcos.io/' + download_id)
+#
+#     metareturned = r.json()
+#
+#     if 'error' in metareturned.keys():
+#
+#         return(jsonify({'error':"Identifier does not exist"})),400
+#
+#     location = get_file(metareturned['distribution'])
+#
+#     filename = location.split('/')[-1]
+#
+#     result = send_file(root_dir + '/app/' + filename)
+#
+#     os.remove(root_dir + '/app/' + filename)
+#
+#     return result
