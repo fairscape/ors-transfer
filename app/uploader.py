@@ -19,7 +19,7 @@ app = Flask(__name__)
 
 root_dir = ''
 
-root_dir = '/Users/justinniestroy-admin/Documents'
+#root_dir = '/Users/justinniestroy-admin/Documents'
 
 secret_key = os.environ['MINIO_SECRET_KEY']
 
@@ -103,6 +103,9 @@ def all(ark):
     if flask.request.method == 'GET':
 
         accept = gather_accepted(request.headers.getlist('accept'))
+
+        if request.args.get('ark'):
+            ark = request.args.get('ark')
 
         if not valid_ark(ark):
 
@@ -341,7 +344,7 @@ def all(ark):
 
             return jsonify({'deleted':False,'error':error}),400
 
-@app.route('/download-html/',methods = ['GET'])
+@app.route('/download/',methods = ['GET'])
 def download_html():
     return render_template('download_homepage.html')
 
@@ -349,7 +352,7 @@ def download_html():
 def gather_accepted(accepted_list):
     if len(accepted_list) > 0:
         full_accepted = []
-        for value in accepted:
+        for value in accepted_list:
             items = value.split(',')
             for item in items:
                 full_accepted.append(item)

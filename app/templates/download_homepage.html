@@ -97,7 +97,7 @@ ul {
   </div>
 </nav>
 <div class="container">
-  <form action = "http://0.0.0.0:5000/data/" method = "GET">
+  <form action = "http://data.uvadcos.io/data/" method = "GET">
   <div class="row">
     <div class="col-sm-12">
       <div class="cliente">
@@ -105,11 +105,11 @@ ul {
           <h3>Dataset Identifier</h3>
             <div class="form-group">
               <label for="ds_id">Dataset Identifier:</label>
-              <input type="email" class="form-control" id="datasetid">
+              <input type="text" name="ark" />
               <p> </p>
               <p> </p>
               <p> </p>
-              <button type="submit" class="btn btn-default">Submit</button>
+              <button type="submit" class="btn btn-default",value = "Submit">Submit</button>
             </div>
           </div>
         </div>
