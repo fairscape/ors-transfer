@@ -26,9 +26,9 @@ class test_upload(unittest.TestCase):
 
         f = open('./Tests/test.csv','rb')
 
-        result = up.upload(f,'test')
+        result = up.upload(f,'test_name','breakfast','Test/')
 
-        self.assertEqual(result,{'upload':True,'location':'breakfast/test'})
+        self.assertEqual(result,{'upload':True,'location':'breakfast/Test/test_name'})
 
 class test_app(unittest.TestCase):
 
@@ -59,7 +59,7 @@ class test_app(unittest.TestCase):
         data = {}
         data['files'] = (io.BytesIO(b"abcdef"), 'test.jpg')
         data['metadata'] = (io.BytesIO(json.dumps(metadata).encode('utf-8')),'name')
-        req = self.app.post('/upload-files',data = data,content_type='multipart/form-data')
+        req = self.app.post('/data/',data = data,content_type='multipart/form-data')
 
         self.assertEqual(req.status_code,200)
 
@@ -86,7 +86,7 @@ class test_app(unittest.TestCase):
         data = {}
         data['files'] = (io.BytesIO(b"abcdef"), 'test.jpg')
         #data['metadata'] = (io.BytesIO(json.dumps(metadata).encode('utf-8')),'name')
-        req = self.app.post('/upload-files',data = data,content_type='multipart/form-data')
+        req = self.app.post('/data/',data = data,content_type='multipart/form-data')
 
         self.assertEqual(req.status_code,400)
 
@@ -113,7 +113,7 @@ class test_app(unittest.TestCase):
         data = {}
         data['files'] = (io.BytesIO(b"abcdef"), 'test.jpg')
         data['metadata'] = (io.BytesIO(b"abcdef"), 'test.jpg')
-        req = self.app.post('/upload-files',data = data,content_type='multipart/form-data')
+        req = self.app.post('/data/',data = data,content_type='multipart/form-data')
 
         self.assertEqual(req.status_code,400)
 
@@ -140,7 +140,7 @@ class test_app(unittest.TestCase):
         data = {}
         #data['files'] = (io.BytesIO(b"abcdef"), 'test.jpg')
         data['metadata'] = (io.BytesIO(json.dumps(metadata).encode('utf-8')),'name')
-        req = self.app.post('/upload-files',data = data,content_type='multipart/form-data')
+        req = self.app.post('/data/',data = data,content_type='multipart/form-data')
 
         self.assertEqual(req.status_code,400)
 
@@ -148,7 +148,7 @@ class test_app(unittest.TestCase):
 
         i = 'ark:99999/f453fd15-f39b-43d4-bdab-6fd8cdb7c6d3'
 
-        req = self.app.get('/download-files/' + i)
+        req = self.app.get('/data/' + i)
 
         self.assertEqual(req.status_code,200)
 
@@ -156,7 +156,7 @@ class test_app(unittest.TestCase):
 
         i = 'ark:/99999/f453fd15-f39b-43d4-bdab-6fd8cdb7c6d3'
 
-        req = self.app.get('/download-files/' + i)
+        req = self.app.get('/data/' + i)
 
         self.assertEqual(req.status_code,400)
 
@@ -164,7 +164,7 @@ class test_app(unittest.TestCase):
 
         i = 'ark:99999/f453fd15-f39b-43d4-bdab-6fd8cdb7c'
 
-        req = self.app.get('/download-files/' + i)
+        req = self.app.get('/data/' + i)
 
         self.assertEqual(req.status_code,400)
 
@@ -174,14 +174,16 @@ class test_app(unittest.TestCase):
 
         if not up.bucket_exists(bucket_name):
 
-            req = self.app.get('create-bucket/' + bucket_name)
+            req = self.app.get('bucket/' + bucket_name)
 
             self.assertTrue(up.bucket_exists(bucket_name))
 
     def test_create_bucket_too_short(self):
 
         bucket_name = 'ab'
-        req = self.app.get('create-bucket/' + bucket_name)
+
+        req = self.app.get('bucket/' + bucket_name)
+
         self.assertEqual(req.status_code,400)
 
 
@@ -205,7 +207,7 @@ class test_app(unittest.TestCase):
 
         ark  = "ark:/999/123"
 
-        req = self.app.delete('delete-file/' + ark)
+        req = self.app.delete('data/' + ark)
 
         self.assertEqual(req.status_code,400)
 
@@ -213,7 +215,7 @@ class test_app(unittest.TestCase):
 
         ark  = "ark:9999/123"
 
-        req = self.app.delete('delete-file/' + ark)
+        req = self.app.delete('data/' + ark)
 
         self.assertEqual(req.status_code,400)
 
