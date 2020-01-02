@@ -17,10 +17,7 @@ from werkzeug.routing import PathConverter
 
 app = Flask(__name__)
 
-root_dir = ''
-
-root_dir = '/Users/justinniestroy-admin/Documents'
-
+ROOT_DIR = os.environ.get("ROOT_DIR", "")
 MINIO_SECRET = os.environ.get("MINIO_SECRET")
 MINIO_KEY = os.environ.get("MINIO_KEY")
 
@@ -122,9 +119,9 @@ def all(ark):
 
         filename = location.split('/')[-1]
 
-        result = send_file(root_dir + '/app/' + filename)
+        result = send_file(ROOT_DIR + '/app/' + filename)
 
-        os.remove(root_dir + '/app/' + filename)
+        os.remove(ROOT_DIR + '/app/' + filename)
 
         return result
 
@@ -731,7 +728,7 @@ def download_script(bucket,location):
     data = minioClient.get_object(bucket, location)
     file_name = location.split('/')[-1]
 
-    with open(root_dir + '/app/' + file_name, 'wb') as file_data:
+    with open(ROOT_DIR + '/app/' + file_name, 'wb') as file_data:
             for d in data.stream(32*1024):
                 file_data.write(d)
 
@@ -837,7 +834,7 @@ def stardog_eg_csv(ark):
         conn.begin()
     #results = conn.select('select * { ?a ?p ?o }')
         results = conn.paths("PATHS START ?x=<"+ ark + "> END ?y VIA ?p",content_type='text/csv')
-    with open(root_dir + '/star/test.csv','wb') as f:
+    with open(ROOT_DIR + '/star/test.csv','wb') as f:
         f.write(results)
 
     return
@@ -845,14 +842,14 @@ def stardog_eg_csv(ark):
 
 def make_eg(ark):
     stardog_eg_csv(ark)
-    data = pd.read_csv(root_dir + '/star/test.csv')
+    data = pd.read_csv(ROOT_DIR + '/star/test.csv')
     eg = build_evidence_graph(data)
     clean_up()
     return eg
 
 
 def create_named_graph(meta,id):
-    with open(root_dir + '/star/meta.json','w') as f:
+    with open(ROOT_DIR + '/star/meta.json','w') as f:
         json.dump(meta, f)
     conn_details = {
         'endpoint': 'http://stardog.uvadcos.io',
@@ -861,7 +858,7 @@ def create_named_graph(meta,id):
     }
     with stardog.Connection('db', **conn_details) as conn:
         conn.begin()
-        conn.add(stardog.content.File(root_dir + "/star/meta.json"),graph_uri='http://ors.uvadcos/'+id)
+        conn.add(stardog.content.File(ROOT_DIR + "/star/meta.json"),graph_uri='http://ors.uvadcos/'+id)
         conn.commit()
     # cmd = 'stardog data add --named-graph http://ors.uvadcos.io/' + id + ' -f JSONLD test "/star/meta.json"'
     # test = os.system(cmd)
@@ -870,7 +867,7 @@ def create_named_graph(meta,id):
 
 
 def clean_up():
-    os.system('rm ' + root_dir + '/star/*')
+    os.system('rm ' + ROOT_DIR + '/star/*')
 
 
 if __name__ == "__main__":
