@@ -94,6 +94,19 @@ def register_resource(user_token, resource):
         return False
 
 
+def delete_resource(user_token, resource):
+
+    resp = requests.delete(
+        url = AUTH_SERVICE + "resource/" + resource,
+        headers = {"Authorization": f"Bearer {user_token}"}
+        )
+
+    if resp.statuse_code != 200:
+        return False
+
+    return True
+
+
 def create_policy(user_token, resource, principal, action, allow):
     '''
     Used to change set permissions on objects from this service at the centrilized auth service
