@@ -82,12 +82,32 @@ def register_resource(identifier, owner):
     resource = {
         "@id": identifier,
         "owner": owner
+
+def create_policy(user_token, resource, principal, action, allow):
+    '''
+    Used to change set permissions on objects from this service at the centrilized auth service
+    '''
+
+    policy_body = {
+        "resouce": resource,
+        "principal": principal,
+        "action": action,
+        "allow": allow,
+        "issuer": ISSUER
     }
 
-    resp = requests.post(AUTH_SERVICE + "resource", data=json.dumps(resource))
 
-    if resp.status_code == 200:
+    policy_response = requests.post(
+        url = AUTH_SERVICE + "policy",
+        data=json.dumps(policy_body),
+        headers = {"Authorization": f"Bearer {user_token}"}
+        )
+
+
+    if policy_response.status_code == 200:
         return True
+
+    # Todo: handle different errors and return
 
     else:
         return False
