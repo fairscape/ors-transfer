@@ -21,9 +21,8 @@ root_dir = ''
 
 root_dir = '/Users/justinniestroy-admin/Documents'
 
-secret_key = os.environ['MINIO_SECRET_KEY']
-
-access_key = os.environ['MINIO_ACCESS_KEY']
+MINIO_SECRET = os.environ.get("MINIO_SECRET")
+MINIO_KEY = os.environ.get("MINIO_KEY")
 
 class EverythingConverter(PathConverter):
     regex = '.*?'
@@ -548,10 +547,11 @@ def valid_ark(ark):
 
         return False
 
+
 def remove_file(bucket,location):
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key=MINIO_KEY,
+                    secret_key=MINIO_SECRET,
                     secure=False)
 
     try:
@@ -567,8 +567,8 @@ def remove_file(bucket,location):
 def bucket_exists(bucketName):
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key=MINIO_KEY,
+                    secret_key=MINIO_SECRET,
                     secure=False)
 
     try:
@@ -583,8 +583,8 @@ def bucket_exists(bucketName):
 
 def make_bucket(bucketName):
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key=MINIO_KEY,
+                    secret_key=MINIO_SECRET,
                     secure=False)
     try:
         minioClient.make_bucket(bucketName)
@@ -666,9 +666,10 @@ def getUserInputs(requestFiles,requestForm):
 
 def delete_bucket(bucketName):
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key=MINIO_KEY,
+                    secret_key=MINIO_SECRET,
                     secure=False)
+
     if bucketName == 'prevent' or bucketName == 'breakfast' or bucketName == 'puglia':
         return "Can't delete that bucket"
 
