@@ -6,7 +6,7 @@ AUTH_SERVICE = "http://ors-auth.uvadcos.io/"
 ISSUER = "ors:transfer"
 
 
-def has_token(handler):
+def token_required(handler):
     '''
     Function Wrapper for all endpoints that checks that an Authorization is present in request headers
     '''
