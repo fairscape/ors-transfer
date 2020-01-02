@@ -532,7 +532,7 @@ def gather_accepted(accepted_list):
     return []
 
 
-def regestiredID(result):
+def registeredID(result):
 
     if 'error' in result.keys():
 
@@ -543,14 +543,9 @@ def regestiredID(result):
 
 def valid_ark(ark):
     pattern = re.compile("ark:\d+/[\d,\w,-]+")
-
     if pattern.match(ark):
-
         return True
-
-    else:
-
-        return False
+    return False
 
 
 def remove_file(bucket,location):
@@ -560,14 +555,12 @@ def remove_file(bucket,location):
                     secure=False)
 
     try:
-
         minioClient.remove_object(bucket,location)
 
     except:
+        return False, 'Object does not exist'
 
-        return False,'Object does not exist'
-
-    return True, ''
+    return True, None
 
 
 def bucket_exists(bucketName):
@@ -578,11 +571,9 @@ def bucket_exists(bucketName):
                     secure=False)
 
     try:
-
         result = minioClient.bucket_exists(bucketName)
 
     except:
-
         return False
 
     return result
