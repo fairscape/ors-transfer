@@ -533,11 +533,8 @@ def gather_accepted(accepted_list):
 
 
 def registeredID(result):
-
     if 'error' in result.keys():
-
         return False
-
     return True
 
 
