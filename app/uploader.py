@@ -596,11 +596,28 @@ def make_bucket(bucketName):
     try:
         minioClient.make_bucket(bucketName)
 
-    except:
+    except Exception as err:
+        return False, str(err)
 
-        return False,"Error: Probably Connection"
+    return True, None
 
-    return True,""
+
+def delete_bucket(bucketName):
+    minioClient = Minio('minionas.uvadcos.io',
+                    access_key=MINIO_KEY,
+                    secret_key=MINIO_SECRET,
+                    secure=False)
+
+    if bucketName == 'prevent' or bucketName == 'breakfast' or bucketName == 'puglia':
+        return "Can't delete that bucket"
+
+    try:
+        minioClient.remove_bucket(bucketName)
+
+    except Exception as err:
+        return False, str(err)
+
+    return True, None
 
 
 def get_file(dist, which_file = '', gave = False):
@@ -671,26 +688,6 @@ def getUserInputs(requestFiles,requestForm):
             folder = ''
 
     return files, meta, folder
-
-
-def delete_bucket(bucketName):
-    minioClient = Minio('minionas.uvadcos.io',
-                    access_key=MINIO_KEY,
-                    secret_key=MINIO_SECRET,
-                    secure=False)
-
-    if bucketName == 'prevent' or bucketName == 'breakfast' or bucketName == 'puglia':
-        return "Can't delete that bucket"
-
-    try:
-
-        minioClient.remove_bucket(bucketName)
-
-    except:
-
-        return False,"Minio Error Try Again"
-
-    return True,""
 
 
 def validate_inputs(files,meta):
