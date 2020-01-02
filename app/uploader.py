@@ -26,11 +26,15 @@ class EverythingConverter(PathConverter):
 
 app.url_map.converters['everything'] = EverythingConverter
 
+
 @app.route('/')
+@token_redirect
 def homepage():
     return render_template('upload_boot.html')
 
+
 @app.route('/run-job',methods = ['GET','POST'])
+@token_required
 def run_job():
 
     if flask.request.method == 'GET':
@@ -50,7 +54,8 @@ def run_job():
 
 
 
-@app.route('/bucket/<bucketName>',methods = ['GET','DELETE'])
+@app.route('/bucket/<bucketName>',methods = ['POST', 'DELETE'])
+@token_required
 def bucket(bucketName):
     #################
     #
@@ -92,8 +97,8 @@ def bucket(bucketName):
         return jsonify({'deleted':True})
 
 
-
 @app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE','PUT'])
+@token_required
 def all(ark):
 
     if flask.request.method == 'GET':
@@ -510,7 +515,9 @@ def all(ark):
 
             return jsonify({'deleted':False,'error':error}),400
 
+
 @app.route('/download/',methods = ['GET'])
+@token_required
 def download_html():
     return render_template('download_homepage.html')
 
