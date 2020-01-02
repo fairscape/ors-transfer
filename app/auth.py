@@ -1,19 +1,25 @@
 import requests
 import flask
 import json
+from functools import wraps
 
 AUTH_SERVICE = "http://ors-auth.uvadcos.io/"
 ISSUER = "ors:transfer"
 
 
+
 def token_required(handler):
     '''
-    Function Wrapper for all endpoints that checks that an Authorization is present in request headers
+    Function Wrapper for all endpoints that checks that an Authorization is present in request headers.
+    If not the wrapper will return an error.
+
+    Used for API service calls where a Globus Token is required.
     '''
 
-    def wrapped_handler(request):
+    @wraps(handler)
+    def wrapped_handler(*args, **kwargs):
         if request.headers.get("Authorization") is not None:
-            return handler
+            return handler(*args, **kwargs)
 
         else:
             return flask.Response(
@@ -21,6 +27,26 @@ def token_required(handler):
                 status=403,
                 content_type="application/json"
             )
+
+    return wrapped_handler
+
+
+
+def token_redirect(handler):
+    '''
+    Function Wrapper for all endpoints that checks for an Authorization token in request headers, if not
+    the wrapper will redirect the user to login.
+
+    Used for frontend views where a user must be logged in to use some part of the page.
+    i.e. deleting a identifier from landing page interface
+    '''
+
+    @wraps(handler)
+    def wrapped_handler(*args, **kwargs):
+        if request.headers.get("Authorization") is not None:
+            return handler(*args, **kwargs)
+        else:
+            return flask.redirect(AUTH_SERVICE + "login")
 
     return wrapped_handler
 
