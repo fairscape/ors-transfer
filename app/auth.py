@@ -118,7 +118,7 @@ def create_policy(user_token, resource, principal, action, allow):
     if policy_response.status_code == 200:
         return True
 
-    # Todo: handle different errors and return
+    # FIXME: handle different errors and return
 
     else:
         return False
