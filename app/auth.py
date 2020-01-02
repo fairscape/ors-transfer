@@ -1,9 +1,10 @@
 import requests
 import flask
 import json
+import os
 from functools import wraps
 
-AUTH_SERVICE = "http://ors-auth.uvadcos.io/"
+AUTH_SERVICE = os.environ.get("AUTH_SERVICE", "http://auth.uvadcos.io/")
 ISSUER = "ors:transfer"
 
 
