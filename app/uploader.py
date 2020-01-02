@@ -712,8 +712,8 @@ def mint_identifier(meta):
 def download_script(bucket,location):
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key= MINIO_KEY,
+                    secret_key= MINIO_SECRET,
                     secure=False)
 
     data = minioClient.get_object(bucket, location)
@@ -731,8 +731,8 @@ def upload(f,name,bucket,folder = ''):
     #filename = get_filename(file)
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key= MINIO_KEY,
+                    secret_key= MINIO_SECRET,
                     secure=False)
 
     f.seek(0, os.SEEK_END)
@@ -755,8 +755,8 @@ def upload(f,name,bucket,folder = ''):
 def get_obj_hash(name,folder = ''):
 
     minioClient = Minio('minionas.uvadcos.io',
-                    access_key=access_key,
-                    secret_key=secret_key,
+                    access_key= MINIO_KEY,
+                    secret_key= MINIO_SECRET,
                     secure=False)
 
     result = minioClient.stat_object('breakfast', folder + name)
