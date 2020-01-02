@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect,jsonify
+import flask
 import requests
 from datetime import datetime
 import pandas as pd
@@ -15,9 +15,10 @@ import re
 from werkzeug.routing import PathConverter
 
 
-app = Flask(__name__)
+app = flask.Flask(__name__)
 
 ROOT_DIR = os.environ.get("ROOT_DIR", "")
+ORS_MDS = os.environ.get("ORS_MDS", "http://ors.uvadcos.io/")
 MINIO_SECRET = os.environ.get("MINIO_SECRET")
 MINIO_KEY = os.environ.get("MINIO_KEY")
 
@@ -30,71 +31,81 @@ app.url_map.converters['everything'] = EverythingConverter
 @app.route('/')
 @token_redirect
 def homepage():
-    return render_template('upload_boot.html')
-
-
-@app.route('/run-job',methods = ['GET','POST'])
-@token_required
-def run_job():
-
-    if flask.request.method == 'GET':
-        return render_template('job_runner.html')
-    if request.data == b'':
-        return(jsonify({'error':"Please POST json with keys, Dataset Identifier, Job Identifier, and Main Function",'valid':False}))
-
-    try:
-        inputs = json.loads(request.data.decode('utf-8'))
-    except:
-        return(jsonify({'error':"Please POST JSON file",'valid':False}))
-
-    r = requests.post(url = 'http://clarklabspark-api-test.marathon.l4lb.thisdcos.directory:5000/run-job',data = json.dumps(inputs))
-
-
-    return r.content.decode()
-
+    return flask.render_template('upload_boot.html')
 
 
 @app.route('/bucket/<bucketName>',methods = ['POST', 'DELETE'])
 @token_required
 def bucket(bucketName):
-    #################
-    #
-    #if auth
-    #
-    ##################
-    if flask.request.method == 'GET':
-        if len(bucketName) < 3:
-            return jsonify({'created':False,
-                            'error':"Bucket name must be at least 3 characters"}),400
+
+    if len(bucketName) < 3:
+        return flask.jsonify({'created':False,
+                        'error':"Bucket does not exist"}),400
+
+
+    # get auth token from header
+    user_token = request.headers.get("Authorization").strip("Bearer ")
+
+    # check the ability of a user to delete the bucket
+    resource = "transfer:bucket:" + bucketName
+
+    if flask.request.method == 'POST':
+
+        # check the ability of a user to create a bucket in the transfer service
+        # by looking up permissions in the auth service
+        allowed = check_permission(user_token, "transfer", "transfer:createBucket")
+
+        if not allowed:
+            return flask.Response(
+                response = json.dumps({"error": "User is not allowed to create a Bucket"}),
+                status_code = 403
+                )
+
 
         if bucket_exists(bucketName):
-            return jsonify({'created':False,
-                            'error':"Bucket with that name already exists"}),400
+            return flask.Response(
+                response = json.dumps({
+                    "@id": bucketName,
+                    'error':"Bucket Already Exists"
+                }),
+                status_code = 400
+                )
 
         success, error = make_bucket(bucketName)
 
         if not success:
-            return jsonify({'created':False,
-                            'error':"Probably cant connect"}),500
+            error_response = { "@id": resource_name, "message": "Failed to create bucket", "error": error}
+            return flask.Response(json.dumps(error_response), status_code = 500)
+
+        resource_registration = register_resource(resource, user_token)
+
+        if resource_registration.status_code != 200:
+            return flask.jsonify({"@id": resource, error": "Failed to register resource with auth server"}), 500
 
         return jsonify({'created':True}),200
 
     if flask.request.method == 'DELETE':
-        if len(bucketName) < 3:
-            return jsonify({'created':False,
-                            'error':"Bucket does not exist"}),400
 
-        if not bucket_exists(bucketName):
-            return jsonify({'created':False,
-                            'error':"Bucket does not exist"}),400
+        allowed = check_permission(user_token, resource, "transfer:deleteBucket")
+
+        if not allowed:
+            return flask.jsonify({"error": "User lacks permission to delete resource"}), 403
 
         success, error = delete_bucket(bucketName)
 
         if not success:
-            return jsonify({'created':False,
-                            'error':error}),400
+            return flask.Response(
+                    response = json.dumps({
+                        "@id": bucketName,
+                        "message": "Failed to Delete Bucket",
+                        "error": error
+                    }),
+                    status_code = 400
+                    )
 
-        return jsonify({'deleted':True})
+         resource_response = delete_resource(user_token, resource_name)
+
+        return flask.Response(response=json.{'deleted':True})
 
 
 @app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE','PUT'])
@@ -105,20 +116,17 @@ def all(ark):
 
         accept = gather_accepted(request.headers.getlist('accept'))
 
-        if request.args.get('ark'):
-            ark = request.args.get('ark')
+        ark = request.args.get('ark')
 
         if not valid_ark(ark):
+            return flask.jsonify({"error":"Improperly formatted Identifier"}), 400
 
-            return jsonify({"error":"Improperly formatted Identifier"}),400
-
-        r = requests.get('http://ors.uvadcos.io/' + ark)
+        r = requests.get(ORS_MDS + ark)
 
         metareturned = r.json()
 
         if 'error' in metareturned.keys():
-
-            return(jsonify({'error':"Identifier does not exist"})),400
+            return flask.jsonify({'error':"Identifier does not exist"}), 400
 
         location = get_file(metareturned['distribution'])
 
@@ -130,13 +138,7 @@ def all(ark):
 
         return result
 
-#########################
-#
-# Post Endppint
-#
-##########################
-
-    elif flask.request.method == 'POST':
+    if flask.request.method == 'POST':
         accept = request.headers.getlist('accept')
 
         if len(accept) > 0:
@@ -147,13 +149,13 @@ def all(ark):
 
             error = "Missing Metadata File. Must pass in file with name metadata"
 
-            return jsonify({'uploaded':False,"Error":error}),400
+            return flask.jsonify({'uploaded':False,"Error":error}),400
 
         if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
 
             error = "Missing Data Files. Must pass in at least one file with name files"
 
-            return jsonify({'uploaded':False,"Error":error}),400
+            return flask.jsonify({'uploaded':False,"Error":error}),400
 
         files, meta, folder = getUserInputs(request.files,request.form)
 
@@ -166,7 +168,7 @@ def all(ark):
 
         if not valid:
 
-            return jsonify({'uploaded':False,"Error":error}),400
+            return flask.jsonify({'uploaded':False,"Error":error}),400
 
 
         upload_failures = []
@@ -277,7 +279,7 @@ def all(ark):
 
                     return render_template('success.html',id = minted_id)
 
-                return jsonify({'All files uploaded':full_upload,
+                return flask.jsonify({'All files uploaded':full_upload,
                                 'failed to upload':upload_failures,
                                 'Minted Identifiers':minted_ids,
                                 'Failed to mint Id for':failed_to_mint
@@ -285,18 +287,19 @@ def all(ark):
 
             else:
 
-                return jsonify({'All files uploaded':full_upload,
+                return flask.jsonify({'All files uploaded':full_upload,
                                 'failed to upload':upload_failures,
                                 'Minted Identifiers':minted_ids,
                                 'Failed to mint Id for':failed_to_mint
                                 }),200
         if 'text/html' in accept:
 
-            return render_template('failure.html')
+            return flask.render_template('failure.html')
 
-        return jsonify({'error':'Files failed to upload.'}),400
+        return flask.jsonify({'error':'Files failed to upload.'}),400
 
-    elif flask.request.method == 'PUT':
+
+    if flask.request.method == 'PUT':
 
         accept = gather_accepted(request.headers.getlist('accept'))
 
@@ -466,12 +469,8 @@ def all(ark):
             return render_template('failure.html')
 
         return jsonify({'error':'Files failed to upload.'}),400
-#########################
-#
-# Delete Endpoint
-#
-##########################
-    elif flask.request.method == 'DELETE':
+
+    if flask.request.method == 'DELETE':
 
         if valid_ark(ark):
 
@@ -483,10 +482,10 @@ def all(ark):
 
             else:
 
-                return jsonify({"error":"Given Identifier not regesited"}),400
+                return flask.jsonify({"error":"Given Identifier not regesited"}),400
 
         else:
-            return jsonify({"error":"Improperly formatted Identifier"}),400
+            return flask.jsonify({"error":"Improperly formatted Identifier"}),400
 
         if 'distribution' in meta.keys():
             if isinstance(meta['distribution'],list):
@@ -495,11 +494,11 @@ def all(ark):
                     minioLocation = meta['distribution'][0]['contentUrl']
 
                 else:
-                    return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+                    return flask.jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
             else:
-                return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+                return flask.jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
         else:
-            return jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
+            return flask.jsonify({'deleted':False,'error':"Metadata distribution Improperly formatted"}),400
 
         bucket = minioLocation.split('/')[1]
 
@@ -509,17 +508,17 @@ def all(ark):
 
         if success:
 
-            return jsonify({'deleted':True}),200
+            return flask.jsonify({'deleted':True}),200
 
         else:
 
-            return jsonify({'deleted':False,'error':error}),400
+            return flask.jsonify({'deleted':False,'error':error}),400
 
 
 @app.route('/download/',methods = ['GET'])
 @token_required
 def download_html():
-    return render_template('download_homepage.html')
+    return flask.render_template('download_homepage.html')
 
 
 def gather_accepted(accepted_list):
