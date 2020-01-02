@@ -80,7 +80,13 @@ def bucket(bucketName):
         resource_registration = register_resource(resource, user_token)
 
         if resource_registration.status_code != 200:
-            return flask.jsonify({"@id": resource, error": "Failed to register resource with auth server"}), 500
+            return flask.Response(
+                response= json.dumps({
+                    "@id": resource,
+                    "error": "Failed to register resource with auth server"
+                }),
+                status_code= 500
+                )
 
         return jsonify({'created':True}),200
 
@@ -95,17 +101,16 @@ def bucket(bucketName):
 
         if not success:
             return flask.Response(
-                    response = json.dumps({
-                        "@id": bucketName,
-                        "message": "Failed to Delete Bucket",
-                        "error": error
-                    }),
-                    status_code = 400
-                    )
+                response = json.dumps({
+                    "@id": bucketName,
+                    "message": "Failed to Delete Bucket",
+                    "error": error
+                }),
+                status_code = 400
+                )
 
-         resource_response = delete_resource(user_token, resource_name)
-
-        return flask.Response(response=json.{'deleted':True})
+        resource_response = delete_resource(user_token, resource_name)
+        return flask.Response(response=json.dumps({'deleted':True}))
 
 
 @app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE','PUT'])
