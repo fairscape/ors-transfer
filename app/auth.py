@@ -74,14 +74,25 @@ def check_permission(user_token, resource, action):
         return False
 
 
-def register_resource(identifier, owner):
+def register_resource(user_token, resource):
     '''
     Post a record of a created object in the Auth service
     '''
 
-    resource = {
-        "@id": identifier,
-        "owner": owner
+    resp = requests.post(
+        url = AUTH_SERVICE + "resource",
+        data = json.dumps({
+            "@id": resource,
+            "owner": user_token
+            })
+        )
+
+    if resp.status_code == 200:
+        return True
+
+    else:
+        return False
+
 
 def create_policy(user_token, resource, principal, action, allow):
     '''
