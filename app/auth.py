@@ -8,7 +8,6 @@ AUTH_SERVICE = os.environ.get("AUTH_SERVICE", "http://auth.uvadcos.io/")
 ISSUER = "ors:transfer"
 
 
-
 def token_required(handler):
     '''
     Function Wrapper for all endpoints that checks that an Authorization is present in request headers.
@@ -32,7 +31,6 @@ def token_required(handler):
     return wrapped_handler
 
 
-
 def token_redirect(handler):
     '''
     Function Wrapper for all endpoints that checks for an Authorization token in request headers, if not
@@ -50,7 +48,6 @@ def token_redirect(handler):
             return flask.redirect(AUTH_SERVICE + "login")
 
     return wrapped_handler
-
 
 
 def check_permission(user_token, resource, action):
@@ -75,7 +72,6 @@ def check_permission(user_token, resource, action):
 
     else:
         return False
-
 
 
 def register_resource(identifier, owner):
