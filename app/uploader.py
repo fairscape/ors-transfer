@@ -845,6 +845,10 @@ def make_eg(ark):
 
 
 def create_named_graph(meta,id):
+    '''
+    Method to create a named graph in stardog
+    '''
+
     with open(ROOT_DIR + '/star/meta.json','w') as f:
         json.dump(meta, f)
     conn_details = {
@@ -856,9 +860,7 @@ def create_named_graph(meta,id):
         conn.begin()
         conn.add(stardog.content.File(ROOT_DIR + "/star/meta.json"),graph_uri='http://ors.uvadcos/'+id)
         conn.commit()
-    # cmd = 'stardog data add --named-graph http://ors.uvadcos.io/' + id + ' -f JSONLD test "/star/meta.json"'
-    # test = os.system(cmd)
-    # warnings.warn('Creating named graph returned: ' + str(test))
+
     return
 
 
