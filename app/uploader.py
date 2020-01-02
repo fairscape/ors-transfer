@@ -528,6 +528,7 @@ def gather_accepted(accepted_list):
         return full_accepted
     return []
 
+
 def regestiredID(result):
 
     if 'error' in result.keys():
@@ -535,6 +536,7 @@ def regestiredID(result):
         return False
 
     return True
+
 
 def valid_ark(ark):
     pattern = re.compile("ark:\d+/[\d,\w,-]+")
@@ -564,6 +566,7 @@ def remove_file(bucket,location):
 
     return True, ''
 
+
 def bucket_exists(bucketName):
 
     minioClient = Minio('minionas.uvadcos.io',
@@ -581,6 +584,7 @@ def bucket_exists(bucketName):
 
     return result
 
+
 def make_bucket(bucketName):
     minioClient = Minio('minionas.uvadcos.io',
                     access_key=MINIO_KEY,
@@ -595,7 +599,8 @@ def make_bucket(bucketName):
 
     return True,""
 
-def get_file(dist,which_file = '',gave = False):
+
+def get_file(dist, which_file = '', gave = False):
     for file in dist:
 
         if 'contentUrl' not in file.keys():
@@ -618,6 +623,7 @@ def get_file(dist,which_file = '',gave = False):
         download = True
 
         return py_location
+
 
 def getUserInputs(requestFiles,requestForm):
 
@@ -683,6 +689,7 @@ def delete_bucket(bucketName):
 
     return True,""
 
+
 def validate_inputs(files,meta):
 
     if meta == {}:
@@ -698,6 +705,7 @@ def validate_inputs(files,meta):
 
     return True,''
 
+
 def mint_identifier(meta):
 
     url = 'http://ors.uvadcos.io/shoulder/ark:99999'
@@ -711,7 +719,6 @@ def mint_identifier(meta):
     else:
 
         return 'error'
-
 
 
 def download_script(bucket,location):
@@ -729,6 +736,7 @@ def download_script(bucket,location):
                 file_data.write(d)
 
     return './' + file_name
+
 
 def upload(f,name,bucket,folder = ''):
 
@@ -755,6 +763,7 @@ def upload(f,name,bucket,folder = ''):
     #f.save(secure_filename(f.filename))
     return {'upload':True,'location':'breakfast/' + folder + name}
 
+
 def get_obj_hash(name,folder = ''):
 
     minioClient = Minio('minionas.uvadcos.io',
@@ -766,8 +775,10 @@ def get_obj_hash(name,folder = ''):
 
     return result.etag
 
+
 def get_filename(full_path):
     return(full_path.split('/')[len(full_path.split('/')) -1 ])
+
 
 def build_evidence_graph(data,clean = True):
     eg = {}
@@ -815,6 +826,7 @@ def build_evidence_graph(data,clean = True):
                 current[row['p']] = {'@id':row['y']}
     return eg
 
+
 def stardog_eg_csv(ark):
     conn_details = {
         'endpoint': 'http://stardog.uvadcos.io',
@@ -830,12 +842,14 @@ def stardog_eg_csv(ark):
 
     return
 
+
 def make_eg(ark):
     stardog_eg_csv(ark)
     data = pd.read_csv(root_dir + '/star/test.csv')
     eg = build_evidence_graph(data)
     clean_up()
     return eg
+
 
 def create_named_graph(meta,id):
     with open(root_dir + '/star/meta.json','w') as f:
@@ -854,8 +868,10 @@ def create_named_graph(meta,id):
     # warnings.warn('Creating named graph returned: ' + str(test))
     return
 
+
 def clean_up():
     os.system('rm ' + root_dir + '/star/*')
+
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0',debug = True)
