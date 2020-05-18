@@ -39,14 +39,17 @@ def get_file(dist, which_file = '', gave = False):
     for file in dist:
 
         if 'contentUrl' not in file.keys():
+
             continue
 
         py_url = file['contentUrl']
 
         if 'minionas' not in py_url:
+
             continue
 
         if which_file not in py_url and gave:
+
             continue
 
         py_bucket = py_url.split('/')[1]
