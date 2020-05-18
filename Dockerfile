@@ -17,7 +17,8 @@ RUN pip3 install -r requirements.txt
 RUN mkdir star
 COPY ./app .
 COPY . .
+RUN cd /app
 
 EXPOSE 5000
 #ENTRYPOINT [ "uwsgi", "--ini", "http.ini"]
-ENTRYPOINT [ "python3","/app/uploader.py"]
+ENTRYPOINT [ "python3","./uploader.py"]

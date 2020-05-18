@@ -1,9 +1,13 @@
 from minio import Minio
+import os
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
 
+MINIO_URL = os.environ.get("MINIO_URL", "minionas.uvadcos.io")
+MINIO_SECRET = os.environ.get("MINIO_SECRET")
+MINIO_KEY = os.environ.get("MINIO_KEY")
 
 def remove_file(bucket,location):
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key=MINIO_KEY,
                     secret_key=MINIO_SECRET,
                     secure=False)
@@ -19,7 +23,7 @@ def remove_file(bucket,location):
 
 def bucket_exists(bucketName):
 
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key=MINIO_KEY,
                     secret_key=MINIO_SECRET,
                     secure=False)
@@ -34,7 +38,7 @@ def bucket_exists(bucketName):
 
 
 def make_bucket(bucketName):
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key=MINIO_KEY,
                     secret_key=MINIO_SECRET,
                     secure=False)
@@ -48,7 +52,7 @@ def make_bucket(bucketName):
 
 
 def delete_bucket(bucketName):
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key=MINIO_KEY,
                     secret_key=MINIO_SECRET,
                     secure=False)
@@ -67,11 +71,10 @@ def delete_bucket(bucketName):
 
 def download_script(bucket,location):
 
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key= MINIO_KEY,
                     secret_key= MINIO_SECRET,
                     secure=False)
-
     data = minioClient.get_object(bucket, location)
     file_name = location.split('/')[-1]
 
@@ -83,34 +86,28 @@ def download_script(bucket,location):
 
 
 def upload(f,name,bucket,folder = ''):
-
     #filename = get_filename(file)
-
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key= MINIO_KEY,
                     secret_key= MINIO_SECRET,
                     secure=False)
-
     f.seek(0, os.SEEK_END)
     size = f.tell()
     f.seek(0)
     if size == 0:
         return {'upload':False,'error':"Empty File"}
     # try:
-
     minioClient.put_object(bucket, folder + name, f, size)
-
     # except ResponseError as err:
     #
     #     return {'upload':False}
-
     #f.save(secure_filename(f.filename))
     return {'upload':True,'location':'breakfast/' + folder + name}
 
 
 def get_obj_hash(name,folder = ''):
 
-    minioClient = Minio('minionas.uvadcos.io',
+    minioClient = Minio(MINIO_URL,
                     access_key= MINIO_KEY,
                     secret_key= MINIO_SECRET,
                     secure=False)

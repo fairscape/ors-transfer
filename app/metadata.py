@@ -1,6 +1,9 @@
-import requests
-import stardog
+import requests,stardog,json
+import pandas as pd
+import os
 
+
+ORS_URL = os.environ.get("ORS_URL", "http://ors.uvadcos.io/")
 
 def build_evidence_graph(data,clean = True):
     eg = {}
@@ -51,7 +54,7 @@ def build_evidence_graph(data,clean = True):
 
 def mint_identifier(meta):
 
-    url = 'http://ors.uvadcos.io/shoulder/ark:99999'
+    url = ORS_URL + 'shoulder/ark:99999'
 
     #Create Identifier for each file uploaded
     r = requests.post(url, data=json.dumps(meta))

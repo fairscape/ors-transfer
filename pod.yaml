@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: j-services
+  namespace: default
+  labels:
+    app: test-services
+spec:
+  serviceAccountName: spark
+  containers:
+  - name: transfer-service
+    imagePullPolicy: Always
+    image: jniestroy/transfer
+    env:
+      - name: MINIO_ACCESS_KEY
+        value: breakfast
+      - name: MINIO_URL
+        value: minionas.uvadcos.io
+      - name: MINIO_SECRET
+        value: breakfast
+      - name: PYTHONUNBUFFERED
+        value: "0"
+      - name: ORS_URL
+        value: http://mds.ors/
+    command:
+        - python3
+        - uploader.py

@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: transfer-service
+  labels:
+    app: transfer-service
+spec:
+  selector:
+    app: transfer-service
+  type: ClusterIP
+  ports:
+  - port: 5002
+    targetPort: 5002
+    protocol: TCP

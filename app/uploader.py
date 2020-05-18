@@ -1,20 +1,19 @@
-import flask
-import requests
+import flask, requests, time, json, os, warnings, re
 from datetime import datetime
 import pandas as pd
-import time
-import json
+from flask import request
 from flask import send_file
-import os
-import warnings
-import flask
-import re
+from auth import *
+from minio_funcs import *
+from metadata import *
+from util import *
 
 
 app = flask.Flask(__name__)
 
 ROOT_DIR = os.environ.get("ROOT_DIR", "")
 ORS_MDS = os.environ.get("ORS_MDS", "http://ors.uvadcos.io/")
+MINIO_URL = os.environ.get("MINIO_URL", "minionas.uvadcos.io")
 MINIO_SECRET = os.environ.get("MINIO_SECRET")
 MINIO_KEY = os.environ.get("MINIO_KEY")
 
@@ -23,13 +22,13 @@ app.url_map.converters['everything'] = EverythingConverter
 
 
 @app.route('/')
-@token_redirect
+#@token_redirect
 def homepage():
     return flask.render_template('upload_boot.html')
 
 
 @app.route('/bucket/<bucketName>',methods = ['POST', 'DELETE'])
-@token_required
+#@token_required
 def bucket(bucketName):
 
     if len(bucketName) < 3:
@@ -38,22 +37,22 @@ def bucket(bucketName):
 
 
     # get auth token from header
-    user_token = request.headers.get("Authorization").strip("Bearer ")
+    #user_token = request.headers.get("Authorization").strip("Bearer ")
 
     # check the ability of a user to delete the bucket
-    resource = "transfer:bucket:" + bucketName
+    #resource = "transfer:bucket:" + bucketName
 
     if flask.request.method == 'POST':
 
         # check the ability of a user to create a bucket in the transfer service
         # by looking up permissions in the auth service
-        allowed = check_permission(user_token, "transfer", "transfer:createBucket")
+        #allowed = check_permission(user_token, "transfer", "transfer:createBucket")
 
-        if not allowed:
-            return flask.Response(
-                response = json.dumps({"error": "User is not allowed to create a Bucket"}),
-                status_code = 403
-                )
+        # if not allowed:
+        #     return flask.Response(
+        #         response = json.dumps({"error": "User is not allowed to create a Bucket"}),
+        #         status_code = 403
+        #         )
 
 
         if bucket_exists(bucketName):
@@ -71,25 +70,25 @@ def bucket(bucketName):
             error_response = { "@id": resource_name, "message": "Failed to create bucket", "error": error}
             return flask.Response(json.dumps(error_response), status_code = 500)
 
-        resource_registration = register_resource(resource, user_token)
-
-        if resource_registration.status_code != 200:
-            return flask.Response(
-                response= json.dumps({
-                    "@id": resource,
-                    "error": "Failed to register resource with auth server"
-                }),
-                status_code= 500
-                )
+        # resource_registration = register_resource(resource, user_token)
+        #
+        # if resource_registration.status_code != 200:
+        #     return flask.Response(
+        #         response= json.dumps({
+        #             "@id": resource,
+        #             "error": "Failed to register resource with auth server"
+        #         }),
+        #         status_code= 500
+        #         )
 
         return jsonify({'created':True}),200
 
     if flask.request.method == 'DELETE':
 
-        allowed = check_permission(user_token, resource, "transfer:deleteBucket")
-
-        if not allowed:
-            return flask.jsonify({"error": "User lacks permission to delete resource"}), 403
+        #allowed = check_permission(user_token, resource, "transfer:deleteBucket")
+        #
+        # if not allowed:
+        #     return flask.jsonify({"error": "User lacks permission to delete resource"}), 403
 
         success, error = delete_bucket(bucketName)
 
@@ -103,12 +102,12 @@ def bucket(bucketName):
                 status_code = 400
                 )
 
-        resource_response = delete_resource(user_token, resource_name)
+        #resource_response = delete_resource(user_token, resource_name)
         return flask.Response(response=json.dumps({'deleted':True}))
 
 
 @app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE','PUT'])
-@token_required
+#@token_required
 def all(ark):
 
     if flask.request.method == 'GET':
@@ -139,9 +138,9 @@ def all(ark):
 
     if flask.request.method == 'POST':
         accept = request.headers.getlist('accept')
-
-        if len(accept) > 0:
-            accept = accept[0]
+        #
+        # if len(accept) > 0:
+        #     accept = accept[0]
 
 
         if 'metadata' not in request.files.keys():
@@ -157,6 +156,8 @@ def all(ark):
             return flask.jsonify({'uploaded':False,"Error":error}),400
 
         files, meta, folder = getUserInputs(request.files,request.form)
+
+        print(meta)
 
         if 'bucket' in meta.keys():
             bucket = meta['bucket']
@@ -183,13 +184,19 @@ def all(ark):
 
             file_name = file.filename.split('/')[-1]
 
+            file_type = file_name.split('.')[-1]
+
             current_id = mint_identifier(meta)
+
+            if current_id == 'error':
+
+                return 'Failed to Mint Id'
 
             file_data = file
 
-            file_name = current_id.split('/')[1]
+            file_name = current_id.split('/')[1] + '.' + file_type
 
-            result = upload(file,file_name,bucket,folder)
+            result = upload(file,file_name ,bucket,folder)
 
             success = result['upload']
 
@@ -212,10 +219,11 @@ def all(ark):
                 }
 
                 act_id = mint_identifier(activity_meta)
+                activity_meta['@id'] = activity_meta
 
                 file_meta = meta
 
-                file_meta['eg:generatedBy'] = act_id
+                file_meta['eg:generatedBy'] = activity_meta
 
                 file_meta['distribution'] = []
 
@@ -247,13 +255,13 @@ def all(ark):
 
                     minted_ids.append(minted_id)
 
-                    create_named_graph(file_meta,minted_id)
+                    # create_named_graph(file_meta,minted_id)
+                    #
+                    # eg = make_eg(minted_id)
 
-                    eg = make_eg(minted_id)
-
-                    r = requests.put('http://ors.uvadcos.io/' + minted_id,
-                                    data=json.dumps({'eg:evidenceGraph':eg,
-                                    'eg:generatedBy':activity_meta,
+                    r = requests.put(ORS_URL + minted_id,
+                                    data=json.dumps({#'eg:evidenceGraph':eg,
+                                    'eg:generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
 
                 else:
@@ -515,10 +523,10 @@ def all(ark):
 
 
 @app.route('/download/',methods = ['GET'])
-@token_required
+#@token_required
 def download_html():
     return flask.render_template('download_homepage.html')
 
 
 if __name__ == "__main__":
-    app.run(host='0.0.0.0',debug = True)
+    app.run(host='0.0.0.0',port=5002)
