@@ -59,6 +59,7 @@ def mint_identifier(meta):
     if 'created' in r.json().keys():
         id = r.json()['created']
         return id
+
     else:
 
         return 'error'

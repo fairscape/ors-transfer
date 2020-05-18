@@ -129,6 +129,10 @@ def all(ark):
 
         location = get_file(metareturned['distribution'])
 
+        if location is None:
+
+            return  flask.jsonify({'error':"Given Identifier has no distribution in this framework"}), 400
+
         filename = location.split('/')[-1]
 
         result = send_file(ROOT_DIR + '/app/' + filename)
@@ -138,6 +142,7 @@ def all(ark):
         return result
 
     if flask.request.method == 'POST':
+
         accept = request.headers.getlist('accept')
 
         if len(accept) > 0:
@@ -159,8 +164,11 @@ def all(ark):
         files, meta, folder = getUserInputs(request.files,request.form)
 
         if 'bucket' in meta.keys():
+
             bucket = meta['bucket']
+
         else:
+
             bucket = 'breakfast'
 
         valid, error = validate_inputs(files,meta)
@@ -181,9 +189,17 @@ def all(ark):
 
             start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
-            file_name = file.filename.split('/')[-1]
+            orginal_file_name = file.filename.split('/')[-1]
 
             current_id = mint_identifier(meta)
+
+            if current_id == 'error':
+
+                if 'text/html' in accept:
+
+                    return flask.render_template('failure.html')
+
+                return jsonify({'error':'Failed to mint Identifier'})
 
             file_data = file
 
@@ -215,7 +231,13 @@ def all(ark):
 
                 file_meta = meta
 
-                file_meta['eg:generatedBy'] = act_id
+                if 'eg:generatedBy' in file_meta.keys():
+
+                    file_meta['eg:generatedBy'] = [file_meta['eg:generatedBy'],act_id]
+
+                else:
+
+                    file_meta['eg:generatedBy'] = act_id
 
                 file_meta['distribution'] = []
 
@@ -225,7 +247,7 @@ def all(ark):
 
                 file_meta['distribution'].append({
                     "@type":"DataDownload",
-                    "name":file_name,
+                    "name":orginal_file_name,
                     "fileFormat":file_name.split('.')[-1],
                     "contentSize":size,
                     "contentUrl":'minionas.uvadcos.io/' + location
@@ -251,16 +273,25 @@ def all(ark):
 
                     eg = make_eg(minted_id)
 
+                    #############
+                    #
+                    # Add in another branch to make sure this step is completed
+                    #
+                    ###############
+
                     r = requests.put('http://ors.uvadcos.io/' + minted_id,
                                     data=json.dumps({'eg:evidenceGraph':eg,
-                                    'eg:generatedBy':activity_meta,
+                                    'eg:generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
 
                 else:
 
+
                     failed_to_mint.append(file.filename)
 
             else:
+
+                r = requests.delete('http://ors.uvadcos.io/' + minted_id)
 
                 upload_failures.append(file.filename)
 
@@ -340,8 +371,11 @@ def all(ark):
             meta['version'] = 2.0
 
         meta['isBasedOn'] = ark
+
         if 'eg:evidenceGraph' in meta.keys():
+
             del meta['eg:evidenceGraph']
+
         upload_failures = []
         minted_ids = []
         failed_to_mint = []
