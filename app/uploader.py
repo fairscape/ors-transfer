@@ -12,8 +12,8 @@ from util import *
 app = flask.Flask(__name__)
 
 ROOT_DIR = os.environ.get("ROOT_DIR", "")
-ORS_MDS = os.environ.get("ORS_MDS", "http://ors.uvadcos.io/")
-MINIO_URL = os.environ.get("MINIO_URL", "minionas.uvadcos.io")
+ORS_MDS = os.environ.get("ORS_MDS", "http://localhost:80/")
+MINIO_URL = os.environ.get("MINIO_URL", "localhost:9000")
 MINIO_SECRET = os.environ.get("MINIO_SECRET")
 MINIO_KEY = os.environ.get("MINIO_KEY")
 
