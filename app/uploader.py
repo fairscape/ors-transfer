@@ -192,7 +192,7 @@ def all(ark):
 
             orginal_file_name = file.filename.split('/')[-1]
 
-            file_type = file_name.split('.')[-1]
+            file_type = orginal_file_name.split('.')[-1]
 
             current_id = mint_identifier(meta)
 
