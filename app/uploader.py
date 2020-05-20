@@ -349,7 +349,7 @@ def all(ark):
 
             return jsonify({"error":"Improperly formatted Identifier"}),400
 
-        r = requests.get('http://ors.uvadcos.io/' + ark)
+        r = requests.get(ORS_URL + ark)
 
         meta = r.json()
 
@@ -469,7 +469,7 @@ def all(ark):
 
                     eg = make_eg(minted_id)
 
-                    r = requests.put('http://ors.uvadcos.io/' + minted_id,
+                    r = requests.put(ORS_URL + minted_id,
                                     data=json.dumps({'eg:evidenceGraph':eg,
                                     'eg:generatedBy':activity_meta,
                                     'distribution':file_meta['distribution']}))
@@ -519,7 +519,7 @@ def all(ark):
 
         if valid_ark(ark):
 
-            req = requests.get("http://ors.uvadcos.io/" + ark)
+            req = requests.get(ORS_URL + ark)
 
             if regestiredID(req.json()):
 
