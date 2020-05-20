@@ -292,8 +292,7 @@ def all(ark):
                     ###############
 
                     r = requests.put(ORS_URL + minted_id,
-                                    data=json.dumps({'eg:evidenceGraph':eg,
-                                    'eg:generatedBy':act_id,
+                                    data=json.dumps({'eg:generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
 
                 else:
