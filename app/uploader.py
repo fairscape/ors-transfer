@@ -291,7 +291,7 @@ def all(ark):
                     #
                     ###############
 
-                    r = requests.put('http://ors.uvadcos.io/' + minted_id,
+                    r = requests.put(ORS_URL + minted_id,
                                     data=json.dumps({'eg:evidenceGraph':eg,
                                     'eg:generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
