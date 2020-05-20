@@ -198,15 +198,12 @@ def all(ark):
 
             if current_id == 'error':
 
-<<<<<<< HEAD
-                return 'Failed to Mint Id'
-=======
                 if 'text/html' in accept:
 
                     return flask.render_template('failure.html')
 
                 return jsonify({'error':'Failed to mint Identifier'})
->>>>>>> b5ee7c473b95a6b7d34dbb272766a37541b5133a
+
 
             file_data = file
 
@@ -239,9 +236,9 @@ def all(ark):
 
                 file_meta = meta
 
-<<<<<<< HEAD
+
                 file_meta['eg:generatedBy'] = activity_meta
-=======
+
                 if 'eg:generatedBy' in file_meta.keys():
 
                     file_meta['eg:generatedBy'] = [file_meta['eg:generatedBy'],act_id]
@@ -249,7 +246,7 @@ def all(ark):
                 else:
 
                     file_meta['eg:generatedBy'] = act_id
->>>>>>> b5ee7c473b95a6b7d34dbb272766a37541b5133a
+
 
                 file_meta['distribution'] = []
 
@@ -285,10 +282,9 @@ def all(ark):
                     #
                     # eg = make_eg(minted_id)
 
-<<<<<<< HEAD
-                    r = requests.put(ORS_URL + minted_id,
-                                    data=json.dumps({#'eg:evidenceGraph':eg,
-=======
+                    #r = requests.put(ORS_URL + minted_id,
+                    #                data=json.dumps({#'eg:evidenceGraph':eg,
+
                     #############
                     #
                     # Add in another branch to make sure this step is completed
@@ -297,7 +293,6 @@ def all(ark):
 
                     r = requests.put('http://ors.uvadcos.io/' + minted_id,
                                     data=json.dumps({'eg:evidenceGraph':eg,
->>>>>>> b5ee7c473b95a6b7d34dbb272766a37541b5133a
                                     'eg:generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
 
