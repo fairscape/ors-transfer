@@ -108,219 +108,219 @@ def bucket(bucketName):
 @app.route('/data',methods = ['POST'])
 @token_required
 def just_upload():
-if flask.request.method == 'POST':
+    if flask.request.method == 'POST':
 
-    accept = request.headers.getlist('accept')
-    #
-    # if len(accept) > 0:
-    #     accept = accept[0]
-
-
-    if 'metadata' not in request.files.keys():
-
-        error = "Missing Metadata File. Must pass in file with name metadata"
-
-        return flask.jsonify({'uploaded':False,"Error":error}),400
-
-    if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
-
-        error = "Missing Data Files. Must pass in at least one file with name files"
-
-        return flask.jsonify({'uploaded':False,"Error":error}),400
-
-    files, meta, folder = getUserInputs(request.files,request.form)
-
-    if 'bucket' in meta.keys():
-
-        bucket = meta['bucket']
-
-    else:
-
-        bucket = 'breakfast'
-
-    valid, error = validate_inputs(files,meta)
-
-    if not valid:
-
-        return flask.jsonify({'uploaded':False,"Error":error}),400
-
-    ARK_NS = '99999'
-    if 'namespace' in meta.keys():
-        ARK_NS = meta['namespace']
-        if not valid_namespace(ARK_NS):
-            return flask.jsonify({'uploaded':False,"Error":'Invalid Namespace'}),400
-
-    qualifier = False
-    if 'qualifier' in meta.keys():
-        qualifier = meta['qualifier']
+        accept = request.headers.getlist('accept')
+        #
+        # if len(accept) > 0:
+        #     accept = accept[0]
 
 
-    upload_failures = []
-    minted_ids = []
-    failed_to_mint = []
+        if 'metadata' not in request.files.keys():
 
-    least_one = False
-    full_upload = False
+            error = "Missing Metadata File. Must pass in file with name metadata"
 
-    for file in files:
+            return flask.jsonify({'uploaded':False,"Error":error}),400
 
-        start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+        if 'files' not in request.files.keys() and 'data-file' not in request.files.keys():
 
-        orginal_file_name = file.filename.split('/')[-1]
+            error = "Missing Data Files. Must pass in at least one file with name files"
 
-        file_type = orginal_file_name.split('.')[-1]
+            return flask.jsonify({'uploaded':False,"Error":error}),400
 
-        current_id = mint_identifier(meta, ARK_NS, qualifier,auth_header)
+        files, meta, folder = getUserInputs(request.files,request.form)
 
-        if current_id == 'error':
+        if 'bucket' in meta.keys():
 
-            if 'text/html' in accept:
+            bucket = meta['bucket']
 
-                return flask.render_template('failure.html')
+        else:
 
-            return flask.jsonify({'error':'Failed to mint Identifier'}),400
+            bucket = 'breakfast'
+
+        valid, error = validate_inputs(files,meta)
+
+        if not valid:
+
+            return flask.jsonify({'uploaded':False,"Error":error}),400
+
+        ARK_NS = '99999'
+        if 'namespace' in meta.keys():
+            ARK_NS = meta['namespace']
+            if not valid_namespace(ARK_NS):
+                return flask.jsonify({'uploaded':False,"Error":'Invalid Namespace'}),400
+
+        qualifier = False
+        if 'qualifier' in meta.keys():
+            qualifier = meta['qualifier']
 
 
-        file_data = file
+        upload_failures = []
+        minted_ids = []
+        failed_to_mint = []
 
-        file_name = current_id.split('/')[1] + '.' + file_type
+        least_one = False
+        full_upload = False
 
-        #result = upload(file,file_name ,bucket,folder)
-        result = upload(file,orginal_file_name ,bucket,folder)
+        for file in files:
 
-        success = result['upload']
+            start_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+
+            orginal_file_name = file.filename.split('/')[-1]
+
+            file_type = orginal_file_name.split('.')[-1]
+
+            current_id = mint_identifier(meta, ARK_NS, qualifier,auth_header)
+
+            if current_id == 'error':
+
+                if 'text/html' in accept:
+
+                    return flask.render_template('failure.html')
+
+                return flask.jsonify({'error':'Failed to mint Identifier'}),400
 
 
-        if success:
-            print('object uploaded')
-            obj_hash = get_obj_hash(orginal_file_name,folder)
+            file_data = file
 
-            end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
+            file_name = current_id.split('/')[1] + '.' + file_type
 
-            location = result['location']
+            #result = upload(file,file_name ,bucket,folder)
+            result = upload(file,orginal_file_name ,bucket,folder)
 
-            activity_meta = {
-                "@type":EVI_PREFIX + "Activity",
-                "dateStarted":start_time,
-                "dateEnded":end_time,
-                EVI_PREFIX + "usedSoftware":"Transfer Service",
-                EVI_PREFIX + 'usedDataset':file_name,
-                "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
-            }
+            success = result['upload']
 
-            act_id = mint_identifier(activity_meta, ARK_NS, qualifier,auth_header)
 
-            activity_meta['@id'] = activity_meta
+            if success:
+                print('object uploaded')
+                obj_hash = get_obj_hash(orginal_file_name,folder)
 
-            file_meta = meta
+                end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
-            if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
-                file_meta[EVI_PREFIX + 'generatedBy'] = activity_meta
+                location = result['location']
 
-            file_meta['distribution'] = []
+                activity_meta = {
+                    "@type":EVI_PREFIX + "Activity",
+                    "dateStarted":start_time,
+                    "dateEnded":end_time,
+                    EVI_PREFIX + "usedSoftware":"Transfer Service",
+                    EVI_PREFIX + 'usedDataset':file_name,
+                    "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
+                }
 
-            f = file_data
-            f.seek(0, os.SEEK_END)
-            size = f.tell()
+                act_id = mint_identifier(activity_meta, ARK_NS, qualifier,auth_header)
 
-            file_meta['distribution'].append({
-                "@type":"DataDownload",
-                "name":orginal_file_name,
-                "fileFormat":file_name.split('.')[-1],
-                "contentSize":size,
-                "contentUrl":MINIO_URL + '/' + location
-            })
+                activity_meta['@id'] = activity_meta
 
-            download_id = mint_identifier(file_meta['distribution'][0], ARK_NS, qualifier,auth_header)
+                file_meta = meta
 
-            file_meta['distribution'][0]['@id'] = download_id
-
-            r = requests.put(ORS_URL + current_id,headers = {"Authorization": auth_header},
-                        data=json.dumps({'distribution':file_meta['distribution']}))
-
-            print('Hello below put call')
-            print(r.content.decode())
-
-            #Base meta taken from user
-
-            if current_id != 'error':
-
-                least_one = True
-
-                minted_id = current_id
-
-                file_meta['@id'] = minted_id
-
-                minted_ids.append(minted_id)
-
-                # create_named_graph(file_meta,minted_id)
-                #
-                # eg = make_eg(minted_id)
-
-                #r = requests.put(ORS_URL + minted_id,
-                #                data=json.dumps({#'eg:evidenceGraph':eg,
-
-                #############
-                #
-                # Add in another branch to make sure this step is completed
-                #
-                ###############
-
-                print("Adding distribution to: " + str(minted_id))
                 if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
-                    r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header},
-                                data=json.dumps({EVI_PREFIX + 'generatedBy':act_id,
-                                'distribution':file_meta['distribution']}))
+                    file_meta[EVI_PREFIX + 'generatedBy'] = activity_meta
+
+                file_meta['distribution'] = []
+
+                f = file_data
+                f.seek(0, os.SEEK_END)
+                size = f.tell()
+
+                file_meta['distribution'].append({
+                    "@type":"DataDownload",
+                    "name":orginal_file_name,
+                    "fileFormat":file_name.split('.')[-1],
+                    "contentSize":size,
+                    "contentUrl":MINIO_URL + '/' + location
+                })
+
+                download_id = mint_identifier(file_meta['distribution'][0], ARK_NS, qualifier,auth_header)
+
+                file_meta['distribution'][0]['@id'] = download_id
+
+                r = requests.put(ORS_URL + current_id,headers = {"Authorization": auth_header},
+                            data=json.dumps({'distribution':file_meta['distribution']}))
+
+                print('Hello below put call')
+                print(r.content.decode())
+
+                #Base meta taken from user
+
+                if current_id != 'error':
+
+                    least_one = True
+
+                    minted_id = current_id
+
+                    file_meta['@id'] = minted_id
+
+                    minted_ids.append(minted_id)
+
+                    # create_named_graph(file_meta,minted_id)
+                    #
+                    # eg = make_eg(minted_id)
+
+                    #r = requests.put(ORS_URL + minted_id,
+                    #                data=json.dumps({#'eg:evidenceGraph':eg,
+
+                    #############
+                    #
+                    # Add in another branch to make sure this step is completed
+                    #
+                    ###############
+
+                    print("Adding distribution to: " + str(minted_id))
+                    if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
+                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header},
+                                    data=json.dumps({EVI_PREFIX + 'generatedBy':act_id,
+                                    'distribution':file_meta['distribution']}))
+                    else:
+                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header},
+                                    data=json.dumps({'distribution':file_meta['distribution']}))
+
                 else:
-                    r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header},
-                                data=json.dumps({'distribution':file_meta['distribution']}))
+
+
+                    failed_to_mint.append(file.filename)
 
             else:
 
+                r = requests.delete(
+                        ORS_URL + minted_id,
+                        headers={"Authorization": auth_header}
+                        )
 
-                failed_to_mint.append(file.filename)
+                upload_failures.append(file.filename)
 
-        else:
+        if len(upload_failures) == 0:
 
-            r = requests.delete(
-                    ORS_URL + minted_id,
-                    headers={"Authorization": auth_header}
-                    )
+            full_upload = True
 
-            upload_failures.append(file.filename)
+        if least_one:
 
-    if len(upload_failures) == 0:
+            if len(minted_ids) > 0:
 
-        full_upload = True
+                minted_id = current_id
 
-    if least_one:
+                if 'text/html' in accept:
 
-        if len(minted_ids) > 0:
+                    return render_template('success.html',id = minted_id)
 
-            minted_id = current_id
+                return flask.jsonify({'All files uploaded':full_upload,
+                                'failed to upload':upload_failures,
+                                'Minted Identifiers':minted_ids,
+                                'Failed to mint Id for':failed_to_mint
+                                }),200
 
-            if 'text/html' in accept:
+            else:
 
-                return render_template('success.html',id = minted_id)
+                return flask.jsonify({'All files uploaded':full_upload,
+                                'failed to upload':upload_failures,
+                                'Minted Identifiers':minted_ids,
+                                'Failed to mint Id for':failed_to_mint
+                                }),200
+        if 'text/html' in accept:
 
-            return flask.jsonify({'All files uploaded':full_upload,
-                            'failed to upload':upload_failures,
-                            'Minted Identifiers':minted_ids,
-                            'Failed to mint Id for':failed_to_mint
-                            }),200
+            return flask.render_template('failure.html')
 
-        else:
-
-            return flask.jsonify({'All files uploaded':full_upload,
-                            'failed to upload':upload_failures,
-                            'Minted Identifiers':minted_ids,
-                            'Failed to mint Id for':failed_to_mint
-                            }),200
-    if 'text/html' in accept:
-
-        return flask.render_template('failure.html')
-
-    return flask.jsonify({'error':'Files failed to upload.'}),400
+        return flask.jsonify({'error':'Files failed to upload.'}),400
 
 @app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE','PUT'])
 @token_required
