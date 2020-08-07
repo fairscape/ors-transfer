@@ -110,6 +110,9 @@ def bucket(bucketName):
 @token_required
 def all(ark):
 
+    auth_header = request.headers.get("Authorization")
+    #auth_token = access_header.strip("Bearer ")
+
     if flask.request.method == 'GET':
 
         accept = gather_accepted(request.headers.getlist('accept'))
@@ -119,7 +122,10 @@ def all(ark):
         if not valid_ark(ark):
             return flask.jsonify({"error":"Improperly formatted Identifier"}), 400
 
-        r = requests.get(ORS_MDS + ark)
+        r = requests.get(
+                ORS_MDS + ark, 
+                headers = {"Authorization": auth_header}
+            )
 
         metareturned = r.json()
 
@@ -194,7 +200,7 @@ def all(ark):
 
             file_type = orginal_file_name.split('.')[-1]
 
-            current_id = mint_identifier(meta)
+            current_id = mint_identifier(meta, auth_header)
 
             if current_id == 'error':
 
@@ -231,7 +237,7 @@ def all(ark):
                     "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
                 }
 
-                act_id = mint_identifier(activity_meta)
+                act_id = mint_identifier(activity_meta, auth_header)
                 activity_meta['@id'] = activity_meta
 
                 file_meta = meta
@@ -262,7 +268,7 @@ def all(ark):
                     "contentUrl":'minionas.uvadcos.io/' + location
                 })
 
-                download_id = mint_identifier(file_meta['distribution'][0])
+                download_id = mint_identifier(file_meta['distribution'][0], auth_header)
 
                 file_meta['distribution'][0]['@id'] = download_id
 
@@ -291,9 +297,14 @@ def all(ark):
                     #
                     ###############
 
-                    r = requests.put(ORS_URL + minted_id,
-                                    data=json.dumps({'eg:generatedBy':act_id,
-                                    'distribution':file_meta['distribution']}))
+                    r = requests.put(
+                            ORS_URL + minted_id,
+                            data=json.dumps({
+                                'eg:generatedBy':act_id,
+                                'distribution':file_meta['distribution']
+                                }),
+                            headers={"Authorization": auth_header}
+                            )
 
                 else:
 
@@ -302,7 +313,10 @@ def all(ark):
 
             else:
 
-                r = requests.delete(ORS_URL + minted_id)
+                r = requests.delete(
+                        ORS_URL + minted_id,
+                        headers={"Authorization": auth_header}
+                        )
 
                 upload_failures.append(file.filename)
 
@@ -348,7 +362,10 @@ def all(ark):
 
             return jsonify({"error":"Improperly formatted Identifier"}),400
 
-        r = requests.get(ORS_URL + ark)
+        r = requests.get(
+                ORS_URL + ark, 
+                headers={"Authorization": auth_header}
+                )
 
         meta = r.json()
 
@@ -400,7 +417,7 @@ def all(ark):
 
             file_name = file.filename.split('/')[-1]
 
-            current_id = mint_identifier(meta)
+            current_id = mint_identifier(meta, auth_header)
 
             file_data = file
 
@@ -428,7 +445,7 @@ def all(ark):
                     "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
                 }
 
-                act_id = mint_identifier(activity_meta)
+                act_id = mint_identifier(activity_meta, auth_header)
 
                 file_meta = meta
 
@@ -448,7 +465,7 @@ def all(ark):
                     "contentUrl":'minionas.uvadcos.io/' + location
                 })
 
-                download_id = mint_identifier(file_meta['distribution'][0])
+                download_id = mint_identifier(file_meta['distribution'][0], auth_header)
 
                 file_meta['distribution'][0]['@id'] = download_id
 
@@ -468,10 +485,15 @@ def all(ark):
 
                     eg = make_eg(minted_id)
 
-                    r = requests.put(ORS_URL + minted_id,
-                                    data=json.dumps({'eg:evidenceGraph':eg,
-                                    'eg:generatedBy':activity_meta,
-                                    'distribution':file_meta['distribution']}))
+                    r = requests.put(
+                            ORS_URL + minted_id,
+                            data=json.dumps({
+                                'eg:evidenceGraph':eg,
+                                'eg:generatedBy':activity_meta,
+                                'distribution':file_meta['distribution']
+                                }),
+                            headers={"Authorization": auth_header}
+                            )
 
                 else:
 
@@ -518,7 +540,10 @@ def all(ark):
 
         if valid_ark(ark):
 
-            req = requests.get(ORS_URL + ark)
+            req = requests.get(
+                    ORS_URL + ark, 
+                    headers={"Authorization": auth_header}
+                    )
 
             if regestiredID(req.json()):
 
