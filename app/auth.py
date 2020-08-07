@@ -27,7 +27,7 @@ def token_required(handler):
 
         token_response = requests.post(
             url = AUTH_SERVICE + "/inspect",
-            headers = {"Authorization": request.headers.get("Authorization")}
+            headers = {"Authorization": flask.request.headers.get("Authorization")}
             )
 
         if token_response.status_code == 204:
