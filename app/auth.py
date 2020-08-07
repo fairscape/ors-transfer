@@ -4,7 +4,7 @@ import json
 import os
 from functools import wraps
 
-AUTH_SERVICE = os.environ.get("AUTH_SERVICE", "http://auth.uvadcos.io/")
+AUTH_SERVICE = os.environ.get("AUTH_SERVICE", "http://clarklab.uvarc.io/auth")
 ISSUER = "ors:transfer"
 
 
@@ -18,15 +18,26 @@ def token_required(handler):
 
     @wraps(handler)
     def wrapped_handler(*args, **kwargs):
-        if request.headers.get("Authorization") is not None:
-            return handler(*args, **kwargs)
-
-        else:
+        if request.headers.get("Authorization") is None:
             return flask.Response(
                 repsonse= json.dumps({"error": "Request Missing Authorization Header"}),
                 status=403,
                 content_type="application/json"
             )
+
+        token_response = requests.post(
+            url = AUTH_SERVICE + "/inspect",
+            headers = {"Authorization": request.headers.get("Authorization")}
+            )
+
+        if token_response.status_code == 204:
+            return handler(*args, **kwargs)
+        else:
+            return flask.Response(
+                    response=json.dumps({"error": "failed to authorize user"})
+                    status=401,
+                    content_type="application/json"
+                    )
 
     return wrapped_handler
 
