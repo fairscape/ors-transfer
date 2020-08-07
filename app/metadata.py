@@ -56,12 +56,9 @@ def build_evidence_graph(data,clean = True):
 import random
 import string
 
-def random_alphanumeric_string(length):
-    letters_and_digits = string.ascii_letters + string.digits
-    result_str = ''.join((random.choice(letters_and_digits) for i in range(length)))
-    return result_str
 
-def mint_identifier(meta,ARK_NS,qualifier = False):
+
+def mint_identifier(meta,ARK_NS,qualifier = False,auth_header=None):
 
     if qualifier:
         url = ORS_URL + 'ark:' + ARK_NS + '/' + qualifier + '/' + random_alphanumeric_string(30)
@@ -69,7 +66,11 @@ def mint_identifier(meta,ARK_NS,qualifier = False):
         url = ORS_URL + 'shoulder/ark:' + ARK_NS
 
     #Create Identifier for each file uploaded
-    r = requests.post(url, data=json.dumps(meta))
+    r = requests.post(
+            url,
+            data=json.dumps(meta),
+            headers={"Authorization": auth_header}
+            )
 
     if 'created' in r.json().keys():
         id = r.json()['created']
