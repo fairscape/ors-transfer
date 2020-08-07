@@ -34,7 +34,7 @@ def token_required(handler):
             return handler(*args, **kwargs)
         else:
             return flask.Response(
-                    response=json.dumps({"error": "failed to authorize user"})
+                    response=json.dumps({"error": "failed to authorize user"}),
                     status=401,
                     content_type="application/json"
                     )
