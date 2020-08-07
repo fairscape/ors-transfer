@@ -20,7 +20,7 @@ def token_required(handler):
     def wrapped_handler(*args, **kwargs):
         if flask.request.headers.get("Authorization") is None:
             return flask.Response(
-                repsonse= json.dumps({"error": "Request Missing Authorization Header"}),
+                response= json.dumps({"error": "Request Missing Authorization Header"}),
                 status=403,
                 content_type="application/json"
             )
