@@ -28,7 +28,7 @@ def homepage():
 
 
 @app.route('/bucket/<bucketName>',methods = ['POST', 'DELETE'])
-#@token_required
+@token_required
 def bucket(bucketName):
 
     if len(bucketName) < 3:
@@ -107,7 +107,7 @@ def bucket(bucketName):
 
 
 @app.route('/data/<everything:ark>',methods = ['POST','GET','DELETE','PUT'])
-#@token_required
+@token_required
 def all(ark):
 
     if flask.request.method == 'GET':
@@ -560,7 +560,7 @@ def all(ark):
 
 
 @app.route('/download/',methods = ['GET'])
-#@token_required
+@token_required
 def download_html():
     return flask.render_template('download_homepage.html')
 
