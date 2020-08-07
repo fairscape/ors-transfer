@@ -18,7 +18,7 @@ def token_required(handler):
 
     @wraps(handler)
     def wrapped_handler(*args, **kwargs):
-        if request.headers.get("Authorization") is None:
+        if flask.request.headers.get("Authorization") is None:
             return flask.Response(
                 repsonse= json.dumps({"error": "Request Missing Authorization Header"}),
                 status=403,
@@ -53,7 +53,7 @@ def token_redirect(handler):
 
     @wraps(handler)
     def wrapped_handler(*args, **kwargs):
-        if request.headers.get("Authorization") is not None:
+        if flask.request.headers.get("Authorization") is not None:
             return handler(*args, **kwargs)
         else:
             return flask.redirect(AUTH_SERVICE + "login")
