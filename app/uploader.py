@@ -323,6 +323,8 @@ def just_upload():
 @token_required
 def all(ark):
 
+    auth_header = request.headers.get("Authorization")
+    #auth_token = access_header.strip("Bearer ")
 
     if flask.request.method == 'GET':
 
@@ -335,7 +337,10 @@ def all(ark):
         if not valid_ark(ark):
             return flask.jsonify({"error":"Improperly formatted Identifier"}), 400
 
-        r = requests.get(ORS_MDS + ark)
+        r = requests.get(
+                ORS_MDS + ark,
+                headers = {"Authorization": auth_header}
+            )
 
         metareturned = r.json()
 
@@ -418,10 +423,7 @@ def all(ark):
 
             file_type = orginal_file_name.split('.')[-1]
 
-            if "folder" in meta.keys():
-                del meta['folder']
-
-            current_id = mint_identifier(meta,ARK_NS,qualifier)
+            current_id = mint_identifier(meta, auth_header)
 
             if current_id == 'error':
 
@@ -459,7 +461,11 @@ def all(ark):
                     "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
                 }
 
+<<<<<<< HEAD
                 act_id = mint_identifier(activity_meta,ARK_NS,qualifier)
+=======
+                act_id = mint_identifier(activity_meta, auth_header)
+>>>>>>> 90dd4ce05b2a8ba7aca27168106c25c747b4a91b
                 activity_meta['@id'] = activity_meta
 
                 file_meta = meta
@@ -481,9 +487,7 @@ def all(ark):
                     "contentUrl":MINIO_URL + '/' + location
                 })
 
-                download_id = mint_identifier(file_meta['distribution'][0],ARK_NS,qualifier)
-
-
+                download_id = mint_identifier(file_meta['distribution'][0], auth_header)
 
                 file_meta['distribution'][0]['@id'] = download_id
 
@@ -518,14 +522,25 @@ def all(ark):
                     #
                     ###############
 
+<<<<<<< HEAD
                     print("Adding distribution to: " + str(minted_id))
                     if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
-                        r = requests.put(ORS_URL + minted_id,
+                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header}
                                     data=json.dumps({EVI_PREFIX + 'generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
                     else:
-                        r = requests.put(ORS_URL + minted_id,
+                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header}
                                     data=json.dumps({'distribution':file_meta['distribution']}))
+=======
+                    r = requests.put(
+                            ORS_URL + minted_id,
+                            data=json.dumps({
+                                'eg:generatedBy':act_id,
+                                'distribution':file_meta['distribution']
+                                }),
+                            headers={"Authorization": auth_header}
+                            )
+>>>>>>> 90dd4ce05b2a8ba7aca27168106c25c747b4a91b
 
                 else:
 
@@ -534,7 +549,14 @@ def all(ark):
 
             else:
 
+<<<<<<< HEAD
                 r = requests.delete(ORS_URL + current_id)
+=======
+                r = requests.delete(
+                        ORS_URL + minted_id,
+                        headers={"Authorization": auth_header}
+                        )
+>>>>>>> 90dd4ce05b2a8ba7aca27168106c25c747b4a91b
 
                 upload_failures.append(file.filename)
 
@@ -580,7 +602,10 @@ def all(ark):
 
             return jsonify({"error":"Improperly formatted Identifier"}),400
 
-        r = requests.get(ORS_URL + ark)
+        r = requests.get(
+                ORS_URL + ark,
+                headers={"Authorization": auth_header}
+                )
 
         meta = r.json()
 
@@ -636,7 +661,11 @@ def all(ark):
 
             file_name = file.filename.split('/')[-1]
 
+<<<<<<< HEAD
             current_id = mint_identifier(meta,ARK_NS)
+=======
+            current_id = mint_identifier(meta, auth_header)
+>>>>>>> 90dd4ce05b2a8ba7aca27168106c25c747b4a91b
 
             file_data = file
 
@@ -664,7 +693,11 @@ def all(ark):
                     "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
                 }
 
+<<<<<<< HEAD
                 act_id = mint_identifier(activity_meta,ARK_NS)
+=======
+                act_id = mint_identifier(activity_meta, auth_header)
+>>>>>>> 90dd4ce05b2a8ba7aca27168106c25c747b4a91b
 
                 file_meta = meta
 
@@ -684,7 +717,11 @@ def all(ark):
                     "contentUrl":'minionas.uvadcos.io/' + location
                 })
 
+<<<<<<< HEAD
                 download_id = mint_identifier(file_meta['distribution'][0],ARK_NS)
+=======
+                download_id = mint_identifier(file_meta['distribution'][0], auth_header)
+>>>>>>> 90dd4ce05b2a8ba7aca27168106c25c747b4a91b
 
                 file_meta['distribution'][0]['@id'] = download_id
 
@@ -704,10 +741,15 @@ def all(ark):
 
                     eg = make_eg(minted_id)
 
-                    r = requests.put(ORS_URL + minted_id,
-                                    data=json.dumps({'eg:evidenceGraph':eg,
-                                    'eg:generatedBy':activity_meta,
-                                    'distribution':file_meta['distribution']}))
+                    r = requests.put(
+                            ORS_URL + minted_id,
+                            data=json.dumps({
+                                'eg:evidenceGraph':eg,
+                                'eg:generatedBy':activity_meta,
+                                'distribution':file_meta['distribution']
+                                }),
+                            headers={"Authorization": auth_header}
+                            )
 
                 else:
 
@@ -754,7 +796,10 @@ def all(ark):
 
         if valid_ark(ark):
 
-            req = requests.get(ORS_URL + ark)
+            req = requests.get(
+                    ORS_URL + ark,
+                    headers={"Authorization": auth_header}
+                    )
 
             if regestiredID(req.json()):
 
