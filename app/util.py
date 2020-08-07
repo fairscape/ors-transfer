@@ -1,7 +1,8 @@
 import os
 import json
 from werkzeug.routing import PathConverter
-
+import re
+from minio_funcs import *
 
 class EverythingConverter(PathConverter):
     regex = '.*?'
@@ -43,10 +44,6 @@ def get_file(dist, which_file = '', gave = False):
             continue
 
         py_url = file['contentUrl']
-
-        if 'minionas' not in py_url:
-
-            continue
 
         if which_file not in py_url and gave:
 
