@@ -423,7 +423,7 @@ def all(ark):
 
             file_type = orginal_file_name.split('.')[-1]
 
-            current_id = mint_identifier(meta, auth_header)
+            current_id = mint_identifier(meta, ARK_NS, qualifier,auth_header)
 
             if current_id == 'error':
 
@@ -461,7 +461,8 @@ def all(ark):
                     "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
                 }
 
-                act_id = mint_identifier(activity_meta, auth_header)
+                act_id = mint_identifier(activity_meta, ARK_NS, qualifier,auth_header)
+
                 activity_meta['@id'] = activity_meta
 
                 file_meta = meta
@@ -483,11 +484,11 @@ def all(ark):
                     "contentUrl":MINIO_URL + '/' + location
                 })
 
-                download_id = mint_identifier(file_meta['distribution'][0], auth_header)
+                download_id = mint_identifier(file_meta['distribution'][0], ARK_NS, qualifier,auth_header)
 
                 file_meta['distribution'][0]['@id'] = download_id
 
-                r = requests.put(ORS_URL + current_id,
+                r = requests.put(ORS_URL + current_id,headers = {"Authorization": auth_header},
                             data=json.dumps({'distribution':file_meta['distribution']}))
 
                 print('Hello below put call')
@@ -520,11 +521,11 @@ def all(ark):
 
                     print("Adding distribution to: " + str(minted_id))
                     if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
-                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header}
+                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header},
                                     data=json.dumps({EVI_PREFIX + 'generatedBy':act_id,
                                     'distribution':file_meta['distribution']}))
                     else:
-                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header}
+                        r = requests.put(ORS_URL + minted_id,headers={"Authorization": auth_header},
                                     data=json.dumps({'distribution':file_meta['distribution']}))
 
                 else:
@@ -611,6 +612,9 @@ def all(ark):
         ARK_NS = '99999'
         if 'namespace' in meta.keys():
             ARK_NS = meta['namespace']
+        qualifier = False
+        if 'qualifier' in meta.keys():
+            qualifier = meta['qualifier']
 
         valid, error = validate_inputs(files,meta)
 
@@ -642,7 +646,8 @@ def all(ark):
 
             file_name = file.filename.split('/')[-1]
 
-            current_id = mint_identifier(meta, auth_header)
+            current_id = mint_identifier(meta, ARK_NS, qualifier,auth_header)
+
 
             file_data = file
 
@@ -670,7 +675,8 @@ def all(ark):
                     "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
                 }
 
-                act_id = mint_identifier(activity_meta, auth_header)
+                act_id = mint_identifier(activity_meta, ARK_NS, qualifier,auth_header)
+
 
                 file_meta = meta
 
@@ -690,7 +696,8 @@ def all(ark):
                     "contentUrl":'minionas.uvadcos.io/' + location
                 })
 
-                download_id = mint_identifier(file_meta['distribution'][0], auth_header)
+                download_id = mint_identifier(file_meta['distribution'][0],ARK_NS, qualifier, auth_header)
+
 
                 file_meta['distribution'][0]['@id'] = download_id
 
