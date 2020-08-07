@@ -2,8 +2,10 @@ import requests,stardog,json
 import pandas as pd
 import os
 
-
 ORS_URL = os.environ.get("ORS_URL", "http://ors.uvadcos.io/")
+
+def valid_namespace(ns):
+    return True
 
 def build_evidence_graph(data,clean = True):
     eg = {}
@@ -51,10 +53,20 @@ def build_evidence_graph(data,clean = True):
                 current[row['p']] = {'@id':row['y']}
     return eg
 
+import random
+import string
 
-def mint_identifier(meta):
+def random_alphanumeric_string(length):
+    letters_and_digits = string.ascii_letters + string.digits
+    result_str = ''.join((random.choice(letters_and_digits) for i in range(length)))
+    return result_str
 
-    url = ORS_URL + 'shoulder/ark:99999'
+def mint_identifier(meta,ARK_NS,qualifier = False):
+
+    if qualifier:
+        url = ORS_URL + 'ark:' + ARK_NS + '/' + qualifier + '/' + random_alphanumeric_string(30)
+    else:
+        url = ORS_URL + 'shoulder/ark:' + ARK_NS
 
     #Create Identifier for each file uploaded
     r = requests.post(url, data=json.dumps(meta))
@@ -64,7 +76,7 @@ def mint_identifier(meta):
         return id
 
     else:
-
+        print(r.json())
         return 'error'
 
 

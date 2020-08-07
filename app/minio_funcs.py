@@ -5,7 +5,7 @@ from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExi
 MINIO_URL = os.environ.get("MINIO_URL", "minionas.uvadcos.io")
 MINIO_SECRET = os.environ.get("MINIO_SECRET")
 MINIO_KEY = os.environ.get("MINIO_KEY")
-
+ROOT_DIR = ''
 def remove_file(bucket,location):
     minioClient = Minio(MINIO_URL,
                     access_key=MINIO_KEY,
