@@ -52,12 +52,16 @@ def build_evidence_graph(data,clean = True):
     return eg
 
 
-def mint_identifier(meta):
+def mint_identifier(meta, auth_header=None):
 
     url = ORS_URL + 'shoulder/ark:99999'
 
     #Create Identifier for each file uploaded
-    r = requests.post(url, data=json.dumps(meta))
+    r = requests.post(
+            url, 
+            data=json.dumps(meta),
+            headers={"Authorization": auth_header}
+            )
 
     if 'created' in r.json().keys():
         id = r.json()['created']
