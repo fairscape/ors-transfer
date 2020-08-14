@@ -1,5 +1,12 @@
+#© 2020 By The Rector And Visitors Of The University Of Virginia
+
+#Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 from minio import Minio
 import os
+import hashlib
 from minio.error import (ResponseError, BucketAlreadyOwnedByYou,BucketAlreadyExists)
 
 MINIO_URL = os.environ.get("MINIO_URL", "minionas.uvadcos.io")
@@ -105,13 +112,19 @@ def upload(f,name,bucket,folder = ''):
     return {'upload':True,'location':'breakfast/' + folder + name}
 
 
-def get_obj_hash(name,folder = ''):
+def get_obj_hash(name,bucket,folder = ''):
 
     minioClient = Minio(MINIO_URL,
                     access_key= MINIO_KEY,
                     secret_key= MINIO_SECRET,
                     secure=False)
-
-    result = minioClient.stat_object('breakfast', folder + name)
+    result = minioClient.stat_object(bucket, folder + name)
 
     return result.etag
+def get_sha256(f):
+    f.seek(0)
+    sha256_hash = hashlib.sha256()
+    for byte_block in iter(lambda: f.read(4096),b""):
+        sha256_hash.update(byte_block)
+    hash = sha256_hash.hexdigest()
+    return hash

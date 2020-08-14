@@ -1,3 +1,9 @@
+#© 2020 By The Rector And Visitors Of The University Of Virginia
+
+#Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+#The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 import flask, requests, time, json, os, warnings, re
 from datetime import datetime
 import pandas as pd
@@ -7,6 +13,7 @@ from auth import *
 from minio_funcs import *
 from metadata import *
 from util import *
+import copy
 
 
 app = flask.Flask(__name__)
@@ -108,6 +115,7 @@ def bucket(bucketName):
 @app.route('/data',methods = ['POST'])
 @token_required
 def just_upload():
+    auth_header = request.headers.get("Authorization")
     if flask.request.method == 'POST':
 
         accept = request.headers.getlist('accept')
@@ -126,6 +134,12 @@ def just_upload():
 
             error = "Missing Data Files. Must pass in at least one file with name files"
 
+            return flask.jsonify({'uploaded':False,"Error":error}),400
+
+        if 'sha256' not in request.files.keys():
+
+            error = "Missing Hash Value. Must pass in sha256 hash"
+            print(request.files['sha256'])
             return flask.jsonify({'uploaded':False,"Error":error}),400
 
         files, meta, folder = getUserInputs(request.files,request.form)
@@ -185,6 +199,11 @@ def just_upload():
 
             file_name = current_id.split('/')[1] + '.' + file_type
 
+
+            sha256_hash = get_sha256(file)
+
+            # if sha256_hash !=
+
             #result = upload(file,file_name ,bucket,folder)
             result = upload(file,orginal_file_name ,bucket,folder)
 
@@ -192,8 +211,8 @@ def just_upload():
 
 
             if success:
-                print('object uploaded')
-                obj_hash = get_obj_hash(orginal_file_name,folder)
+                obj_hash = get_obj_hash(orginal_file_name,bucket,folder)
+
 
                 end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
@@ -205,7 +224,7 @@ def just_upload():
                     "dateEnded":end_time,
                     EVI_PREFIX + "usedSoftware":"Transfer Service",
                     EVI_PREFIX + 'usedDataset':file_name,
-                    "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
+
                 }
 
                 act_id = mint_identifier(activity_meta, ARK_NS, qualifier,auth_header)
@@ -223,12 +242,21 @@ def just_upload():
                 f.seek(0, os.SEEK_END)
                 size = f.tell()
 
+                hash = {"@type": "PropertyValue", "name":"md5", "value": obj_hash}
+                hash_id = mint_identifier(hash, ARK_NS, qualifier,auth_header)
+                hash['@id'] = hash_id
+
+                hash2 = {"@type": "PropertyValue", "name":"sha256", "value": sha256_hash}
+                hash_id2 = mint_identifier(hash2, ARK_NS, qualifier,auth_header)
+                hash2['@id'] = hash_id2
+
                 file_meta['distribution'].append({
                     "@type":"DataDownload",
                     "name":orginal_file_name,
                     "fileFormat":file_name.split('.')[-1],
                     "contentSize":size,
-                    "contentUrl":MINIO_URL + '/' + location
+                    "contentUrl":MINIO_URL + '/' + location,
+                    "identifier":[hash,hash2]
                 })
 
                 download_id = mint_identifier(file_meta['distribution'][0], ARK_NS, qualifier,auth_header)
@@ -246,25 +274,9 @@ def just_upload():
                 if current_id != 'error':
 
                     least_one = True
-
                     minted_id = current_id
-
                     file_meta['@id'] = minted_id
-
                     minted_ids.append(minted_id)
-
-                    # create_named_graph(file_meta,minted_id)
-                    #
-                    # eg = make_eg(minted_id)
-
-                    #r = requests.put(ORS_URL + minted_id,
-                    #                data=json.dumps({#'eg:evidenceGraph':eg,
-
-                    #############
-                    #
-                    # Add in another branch to make sure this step is completed
-                    #
-                    ###############
 
                     print("Adding distribution to: " + str(minted_id))
                     if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
@@ -384,6 +396,12 @@ def all(ark):
 
             return flask.jsonify({'uploaded':False,"Error":error}),400
 
+        # if 'sha256' not in request.files.keys() and 'data-file' not in request.files.keys():
+        #
+        #     error = "Missing Hash Value. Must pass in sha256 file hash"
+        #
+        #     return flask.jsonify({'uploaded':False,"Error":error}),400
+
         files, meta, folder = getUserInputs(request.files,request.form)
 
         if 'bucket' in meta.keys():
@@ -449,7 +467,8 @@ def all(ark):
 
             if success:
                 print('object uploaded')
-                obj_hash = get_obj_hash(orginal_file_name,folder)
+                obj_hash = get_obj_hash(orginal_file_name,bucket,folder)
+                new_hash = get_sha256(file_data)
 
                 end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
@@ -461,7 +480,7 @@ def all(ark):
                     "dateEnded":end_time,
                     EVI_PREFIX + "usedSoftware":"Transfer Service",
                     EVI_PREFIX + 'usedDataset':file_name,
-                    "identifier":[{"@type": "PropertyValue", "name": "md5", "value": obj_hash}]
+
                 }
 
                 act_id = mint_identifier(activity_meta, ARK_NS, qualifier,auth_header)
@@ -479,12 +498,21 @@ def all(ark):
                 f.seek(0, os.SEEK_END)
                 size = f.tell()
 
+                hash = {"@type": "PropertyValue", "name":"md5", "value": obj_hash}
+                hash_id = mint_identifier(hash, ARK_NS, qualifier,auth_header)
+                hash['@id'] = hash_id
+
+                hash2 = {"@type": "PropertyValue", "name":"sha256", "value": new_hash}
+                hash_id2 = mint_identifier(hash2, ARK_NS, qualifier,auth_header)
+                hash2['@id'] = hash_id2
+
                 file_meta['distribution'].append({
                     "@type":"DataDownload",
                     "name":orginal_file_name,
                     "fileFormat":file_name.split('.')[-1],
                     "contentSize":size,
-                    "contentUrl":MINIO_URL + '/' + location
+                    "contentUrl":MINIO_URL + '/' + location,
+                    "identifier":[hash,hash2]
                 })
 
                 download_id = mint_identifier(file_meta['distribution'][0], ARK_NS, qualifier,auth_header)
@@ -502,25 +530,9 @@ def all(ark):
                 if current_id != 'error':
 
                     least_one = True
-
                     minted_id = current_id
-
                     file_meta['@id'] = minted_id
-
                     minted_ids.append(minted_id)
-
-                    # create_named_graph(file_meta,minted_id)
-                    #
-                    # eg = make_eg(minted_id)
-
-                    #r = requests.put(ORS_URL + minted_id,
-                    #                data=json.dumps({#'eg:evidenceGraph':eg,
-
-                    #############
-                    #
-                    # Add in another branch to make sure this step is completed
-                    #
-                    ###############
 
                     print("Adding distribution to: " + str(minted_id))
                     if EVI_PREFIX + 'generatedBy' not in file_meta.keys() and 'eg:generatedBy' not in file_meta.keys():
@@ -577,7 +589,6 @@ def all(ark):
             return flask.render_template('failure.html')
 
         return flask.jsonify({'error':'Files failed to upload.'}),400
-
 
     if flask.request.method == 'PUT':
 
@@ -663,7 +674,8 @@ def all(ark):
 
             if success:
 
-                obj_hash = get_obj_hash(file_name,folder)
+                obj_hash = get_obj_hash(file_name,bucket,folder)
+
 
                 end_time = datetime.fromtimestamp(time.time()).strftime("%A, %B %d, %Y %I:%M:%S")
 
