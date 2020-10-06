@@ -1,0 +1,30 @@
+language: python
+
+python:
+   - "3.6"
+
+services:
+   - docker
+
+before_install:
+   - sudo apt-get update
+   - sudo apt-get install python3 python3-pip build-essential
+
+
+install:
+   - pip3 install -r requirements.txt
+   - pip3 install mock nose parameterized
+
+script:
+  - cd app
+  - python3 -m pytest -v tests/tests.py
+
+
+after_success:
+   - set -e
+   - cd ..
+   - docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+   - REPO=jniestroy/transfer
+   - docker build -f Dockerfile -t $REPO:latest .;
+   - docker push $REPO:latest;
+   - echo "Pushed to" $REPO:latest;

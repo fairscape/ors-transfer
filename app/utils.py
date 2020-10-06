@@ -4,35 +4,42 @@
 #The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import requests
-import json
-import os
+from werkzeug.routing import PathConverter
+import re
+class EverythingConverter(PathConverter):
+    regex = '.*?'
 
-ORS_URL = os.environ.get("ORS_URL", "http://localhost:80/")
-MINIO_URL = os.environ.get("MINIO_URL", "localhost:9000")
-MINIO_SECRET = os.environ.get("MINIO_SECRET")
-MINIO_KEY = os.environ.get("MINIO_KEY")
+def correct_inputs(request,req_type = 'POST'):
+    if 'metadata' not in request.files.keys() and req_type == 'POST':
 
-def mint_identifier(meta,ARK_NS,qualifier = False,token=None):
+        error = "Missing Metadata File. Must pass in json containing object metadata."
 
-    if qualifier:
-        url = ORS_URL + 'ark:' + ARK_NS + '/' + qualifier + '/' + random_alphanumeric_string(30)
-    else:
-        url = ORS_URL + 'shoulder/ark:' + ARK_NS
+        return error, False
 
-    #Create Identifier for each file uploaded
-    r = requests.post(
-            url,
-            data=json.dumps(meta),
-            headers={"Authorization": token}
-            )
-    return r.json()['created']
+    if 'files' not in request.files.keys():
 
-def retrieve_metadata(ark,token):
+        error = "Missing Data File. Must pass in at least one file with name files"
 
-    r = requests.get(
-        ORS_URL + ark,
-        headers={"Authorization": token}
-        )
+        return error, False
 
-    return r.json()
+
+    return '', True
+
+def valid_meta(metadata):
+
+    if metadata.get('@type') != 'Download' and metadata.get('@type') != 'DataDownload':
+        if 'distribution' not in metadata.keys():
+            return False
+        if not isinstance(metadata['distribution'],list) and not isinstance(metadata['distribution'],dict):
+            return False
+
+    return True
+
+def valid_ark(ark):
+    pattern = re.compile("ark:\d+/[\d,\w,-]+")
+    if pattern.match(ark):
+        return True
+    return False
+
+def valid_namespace(ns):
+    return True

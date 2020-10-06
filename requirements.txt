@@ -1,5 +1,4 @@
 requests
 flask
-minio
-pandas
-pystardog
+boto3
+pyjwt
