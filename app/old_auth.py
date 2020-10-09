@@ -11,6 +11,80 @@ AUTH_SERVICE = os.environ.get("AUTH_SERVICE", "http://clarklab.uvarc.io/auth")
 KEY = os.environ.get('AUTH_KEY')
 ISSUER = "ors:transfer"
 
+def is_admin(handler):
+    '''
+    Function Wrapper for all endpoints that checks that an Authorization is present in request headers.
+    If not the wrapper will return an error.
+
+    Used for API service calls where a Globus Token is required.
+    '''
+
+    @wraps(handler)
+    def wrapped_handler(*args, **kwargs):
+        if os.environ.get("NO_AUTH",False):
+            return handler(*args, **kwargs)
+
+        if flask.request.headers.get("Authorization") is None:
+            return flask.Response(
+                response= json.dumps({"error": "Request Missing Authorization Header"}),
+                status=403,
+                content_type="application/json"
+            )
+
+        encoded_token = flask.request.headers.get("Authorization")
+        try:
+            json_token = jwt.decode(encoded_token, KEY, algorithms='HS256',audience = 'https://fairscape.org')
+        except:
+            return flask.Response(
+                    response=json.dumps({"error": "Expired Token"}),
+                    status=400,
+                    content_type="application/json"
+                    )
+        if json_token.get('role',None) == 'admin':
+            return handler(*args, **kwargs)
+        else:
+            return flask.Response(
+                    response=json.dumps({"error": "failed to authorize user"}),
+                    status=401,
+                    content_type="application/json"
+                    )
+    return wrapped_handler
+
+def is_owner(handler):
+    '''
+    Function Wrapper for all endpoints that checks that an Authorization is present in request headers.
+    If not the wrapper will return an error.
+
+    Used for API service calls where a Globus Token is required.
+    '''
+
+    @wraps(handler)
+    def wrapped_handler(ark,*args, **kwargs):
+        print(ark)
+        if os.environ.get("NO_AUTH",False):
+            return handler(*args, **kwargs)
+
+        if flask.request.headers.get("Authorization") is None:
+            return flask.Response(
+                response= json.dumps({"error": "Request Missing Authorization Header"}),
+                status=403,
+                content_type="application/json"
+            )
+
+        encoded_token = flask.request.headers.get("Authorization")
+        json_token = jwt.decode(encoded_token, 'test secret', algorithms='HS256',audience = 'https://fairscape.org')
+
+
+        if json_token.get('role',None) == 'user' or json_token.get('role',None) == 'admin':
+            return handler(ark,*args, **kwargs)
+        else:
+            return flask.Response(
+                    response=json.dumps({"error": "failed to authorize user"}),
+                    status=401,
+                    content_type="application/json"
+                    )
+    return wrapped_handler
+
 def check_token(handler):
     '''
     Function Wrapper for all endpoints that checks that an Authorization is present in request headers.
@@ -32,8 +106,14 @@ def check_token(handler):
             )
 
         encoded_token = flask.request.headers.get("Authorization")
-        json_token = jwt.decode(encoded_token, KEY, algorithms='HS256',audience = 'https://fairscape.org')
-
+        try:
+            json_token = jwt.decode(encoded_token, 'test secret', algorithms='HS256',audience = 'https://fairscape.org')
+        except:
+            return flask.Response(
+                    response=json.dumps({"error": "Expired Token"}),
+                    status=400,
+                    content_type="application/json"
+                    )
         if json_token.get('role',None) == 'admin':
             return handler(*args, **kwargs)
         elif allowed_user(json_token):
