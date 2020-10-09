@@ -29,8 +29,9 @@ logger = logging.getLogger(__name__)
 
 app.url_map.converters['everything'] = EverythingConverter
 
+
 @app.route('/data',methods = ['POST'])
-@check_token
+@user_level_permission
 def just_upload():
 
     logger.info('Transfer Service handling request %s', request)
@@ -45,7 +46,7 @@ def just_upload():
         return flask.jsonify({'uploaded':False,
                         'error':'Metadata must be json file describing object.'}),400
 
-    token = request.headers.get("Authorization")
+    token = request.headers.get("Authorization",None)
     files = request.files.getlist('files')
     try:
         sha256 = request.files['sha-256']
@@ -69,12 +70,13 @@ def just_upload():
                         'error':'Failed to upload file.'}),503
 
     file_to_upload.update_id()
+    file_to_upload.create_resource()
     return flask.jsonify({'uploaded':True,
                     'Minted Identifiers':[file_to_upload.object_id]}),200
 
 
 @app.route('/data/<everything:ark>',methods = ['POST','PUT','GET','POST'])
-@check_token
+@admin_level_permission
 def rest(ark):
     if flask.request.method == 'POST':
         error, valid_inputs = correct_inputs(request)

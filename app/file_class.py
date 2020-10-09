@@ -10,6 +10,8 @@ from utils import *
 
 ORS_URL = os.environ.get("ORS_URL", "http://localhost:80/")
 OS_URL = os.environ.get("OS_URL", "http://localhost:80/")
+AUTH_SERVICE = os.environ.get("AUTH_SERVICE", "http://clarklab.uvarc.io/auth")
+KEY = os.environ.get('AUTH_KEY')
 
 class Distribution:
     def __init__(self,metadata):
@@ -112,6 +114,19 @@ class File:
             self.version = 1.0
             return
 
+    def create_resource(self):
+        if token is None:
+            return
+
+        json_token = jwt.decode(token, KEY, algorithms='HS256',audience = 'https://fairscape.org')
+
+        resource_meta = {'Id':self.dist_id,'Owner':json_token.get('sub')}
+        r = requests.post(AUTH_SERVICE + '/resource',data = json.dumps(resource_meta))
+
+        resource_meta = {'Id':self.object_id,'Owner':json_token.get('sub')}
+        r = requests.post(AUTH_SERVICE + '/resource',data = json.dumps(resource_meta))
+
+        return
 
     def upload(self):
         full_location = self.object_id.split('/')[-1] + '/' + 'V' + str(self.version) + '/' +  self.file_location
