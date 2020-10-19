@@ -4,7 +4,7 @@
 #The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import flask, requests, time, json, os, warnings, re,logging
+import flask, requests, time, json, os, warnings, re,logging,jwt
 from datetime import datetime
 from flask import request
 from flask import send_file
@@ -75,9 +75,21 @@ def just_upload():
                     'Minted Identifiers':[file_to_upload.object_id]}),200
 
 
-@app.route('/data/<everything:ark>',methods = ['POST','PUT','GET','POST'])
-@admin_level_permission
+@app.route('/data/<everything:ark>',methods = ['POST','PUT','GET','DELETE'])
+@owner_level_permission
 def rest(ark):
+    if flask.request.method == 'DELETE':
+
+        if not valid_ark(ark):
+            return flask.jsonify({"error":"Improperly formatted Identifier"}), 400
+
+        obj_req = requests.delete(OS_URL + ark)
+
+        obj_resp = obj_req.json()
+
+        return flask.jsonify(obj_resp), obj_req.status_code
+
+
     if flask.request.method == 'POST':
         error, valid_inputs = correct_inputs(request)
         if not valid_inputs:

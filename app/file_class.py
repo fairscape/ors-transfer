@@ -4,7 +4,7 @@
 #The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 #THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import requests,json, os
+import requests,json, os, jwt
 from metadata import *
 from utils import *
 
@@ -51,6 +51,11 @@ class File:
             del meta['folder']
         else:
             self.folder = ''
+        if 'group' in meta.keys():
+            self.group = meta['group']
+            del meta['folder']
+        else:
+            self.group = []
         if 'version' in meta.keys():
             try:
                 self.version = float(meta['version'])
@@ -115,15 +120,19 @@ class File:
             return
 
     def create_resource(self):
-        if token is None:
+        if self.token is None:
             return
 
-        json_token = jwt.decode(token, KEY, algorithms='HS256',audience = 'https://fairscape.org')
+        json_token = jwt.decode(self.token, KEY, algorithms='HS256',audience = 'https://fairscape.org')
 
-        resource_meta = {'Id':self.dist_id,'Owner':json_token.get('sub')}
+        resource_meta = {'@id':self.dist_id.split('/')[-1],'Owner':json_token.get('sub'),'@type':'Resource'}
+        if self.group != []:
+            resource_meta['group'] = self.group
         r = requests.post(AUTH_SERVICE + '/resource',data = json.dumps(resource_meta))
 
-        resource_meta = {'Id':self.object_id,'Owner':json_token.get('sub')}
+        resource_meta = {'@id':self.object_id.split('/')[-1],'Owner':json_token.get('sub'),'@type':'Resource'}
+        if self.group != []:
+            resource_meta['group'] = self.group
         r = requests.post(AUTH_SERVICE + '/resource',data = json.dumps(resource_meta))
 
         return

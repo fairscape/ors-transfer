@@ -14,6 +14,7 @@ COPY requirements.txt .
 
 RUN pip3 install --upgrade pip
 RUN pip3 install -r requirements.txt
+RUN echo test2
 RUN pip3 install git+https://github.com/fairscape/python-auth
 
 COPY ./app .
