@@ -53,7 +53,6 @@ class File:
             self.folder = ''
         if 'group' in meta.keys():
             self.group = meta['group']
-            del meta['folder']
         else:
             self.group = []
         if 'version' in meta.keys():
@@ -125,14 +124,16 @@ class File:
 
         json_token = jwt.decode(self.token, KEY, algorithms='HS256',audience = 'https://fairscape.org')
 
-        resource_meta = {'@id':self.dist_id.split('/')[-1],'Owner':json_token.get('sub'),'@type':'Resource'}
+        resource_meta = {'@id':self.dist_id,'owner':json_token.get('sub'),'@type':'Resource'}
         if self.group != []:
-            resource_meta['group'] = self.group
+            resource_meta['groups'] = [self.group]
+        r = requests.delete(AUTH_SERVICE + '/resource/' + self.dist_id)
         r = requests.post(AUTH_SERVICE + '/resource',data = json.dumps(resource_meta))
 
-        resource_meta = {'@id':self.object_id.split('/')[-1],'Owner':json_token.get('sub'),'@type':'Resource'}
+        resource_meta = {'@id':self.object_id,'owner':json_token.get('sub'),'@type':'Resource'}
         if self.group != []:
-            resource_meta['group'] = self.group
+            resource_meta['groups'] = [self.group]
+        r = requests.delete(AUTH_SERVICE + '/resource/' + self.object_id)
         r = requests.post(AUTH_SERVICE + '/resource',data = json.dumps(resource_meta))
 
         return
@@ -184,6 +185,10 @@ class File:
 
         update = {'distribution':dist}
 
-        requests.put(ORS_URL + self.object_id,data = json.dumps(update))
-
-        return
+        r = requests.put(ORS_URL + self.object_id,data = json.dumps(update),headers = {'Authorization':self.token})
+        try:
+            if 'updated' not in r.json():
+                return False
+            return True
+        except:
+            return False

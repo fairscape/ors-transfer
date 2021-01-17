@@ -49,10 +49,12 @@ def just_upload():
     token = request.headers.get("Authorization",None)
     files = request.files.getlist('files')
     try:
-        sha256 = request.files['sha-256']
+        sha256 = request.files['sha256'].read().decode("utf-8")
     except:
-        sha256 = 0
+        return flask.jsonify({'uploaded':False,
+                        'error':'Must upload hash of object with tag sha256.'}),400
 
+    print(sha256)
     file_to_upload = File(meta,files[0],sha256,token)
     try:
         file_to_upload.mint_object_id()
@@ -69,24 +71,29 @@ def just_upload():
         return flask.jsonify({'uploaded':False,
                         'error':'Failed to upload file.'}),503
 
-    file_to_upload.update_id()
+    meta_updated = file_to_upload.update_id()
+    if not meta_updated:
+        logger.error('Failed to add distribution id to %s', file_to_upload.object_id)
+
     file_to_upload.create_resource()
     return flask.jsonify({'uploaded':True,
                     'Minted Identifiers':[file_to_upload.object_id]}),200
 
 
 @app.route('/data/<everything:ark>',methods = ['POST','PUT','GET','DELETE'])
-@owner_level_permission
+@group_get_owner_else
 def rest(ark):
     if flask.request.method == 'DELETE':
 
         if not valid_ark(ark):
             return flask.jsonify({"error":"Improperly formatted Identifier"}), 400
 
-        obj_req = requests.delete(OS_URL + ark)
-
-        obj_resp = obj_req.json()
-
+        token = request.headers.get("Authorization")
+        obj_req = requests.delete(OS_URL + 'data/' + ark,headers = {"Authorization": token})
+        try:
+            obj_resp = obj_req.json()
+        except:
+            return flask.jsonify({'deleted':False}), 503
         return flask.jsonify(obj_resp), obj_req.status_code
 
 
@@ -174,9 +181,10 @@ def rest(ark):
         token = request.headers.get("Authorization")
         files = request.files.getlist('files')
         try:
-            sha256 = request.files['sha-256']
+            sha256 = request.files['sha256']
         except:
-            sha256 = 0
+            return flask.jsonify({'uploaded':False,
+                            'error':'Must upload hash of object with tag sha256.'}),400
 
         file_to_upload = File(meta,files[0],sha256,token)
         file_to_upload.object_id = ark

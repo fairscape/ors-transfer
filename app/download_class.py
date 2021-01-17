@@ -26,7 +26,7 @@ class Distribution:
             self.version = 1
         elif metadata.get('@type') == 'Download':
             data_url = metadata['name']
-            self.version = metadata['version']
+            self.version = metadata.get('version',1.0)
             self.bucket = data_url.split('/')[0]
             self.file_location = '/'.join(data_url.split('/')[1:])
 
