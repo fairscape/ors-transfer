@@ -18,7 +18,7 @@ install:
 script:
   - cd app
   - export NO_AUTH=True
-  - python3 -m pytest -v tests/tests.py
+  - python3 -m pytest -v Tests/tests.py
 
 
 after_success:
