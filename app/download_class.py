@@ -27,8 +27,12 @@ class Distribution:
         elif metadata.get('@type') == 'Download':
             data_url = metadata['name']
             self.version = metadata.get('version',1.0)
-            self.bucket = data_url.split('/')[0]
-            self.file_location = '/'.join(data_url.split('/')[1:])
+            if data_url.split('/')[0] == '':
+                self.bucket = data_url.split('/')[1]
+                self.file_location = '/'.join(data_url.split('/')[2:])
+            else:
+                self.bucket = data_url.split('/')[0]
+                self.file_location = '/'.join(data_url.split('/')[1:])
 
         else:
             self.bucket = ''
@@ -54,6 +58,10 @@ class Download:
                     dist = Distribution(dist_metadata)
                 elif isinstance(metadata['distribution'],list):
                     dist_metadata = retrieve_metadata(metadata['distribution'][-1]['@id'],
+                                                        self.token)
+                    dist = Distribution(dist_metadata)
+                else:
+                    dist_metadata = retrieve_metadata(metadata['distribution'],
                                                         self.token)
                     dist = Distribution(dist_metadata)
             else:

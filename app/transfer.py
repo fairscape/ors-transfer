@@ -17,6 +17,9 @@ import copy
 
 
 app = flask.Flask(__name__)
+log = logging.getLogger('werkzeug')
+log.disabled = True
+os.environ['WERKZEUG_RUN_MAIN'] = 'true'
 
 ROOT_DIR = os.environ.get("ROOT_DIR", "")
 ORS_URL = os.environ.get("ORS_URL", "http://localhost:80/")
@@ -24,8 +27,32 @@ OS_URL = os.environ.get("OS_URL", "http://localhost:80/")
 TESTING = os.environ.get("NO_AUTH",False)
 EVI_PREFIX = 'evi:'
 
-logging.basicConfig(level=logging.INFO)
+#logging.basicConfig(level=logging.INFO)
+
+class StructuredMessage(object):
+    def __init__(self, message, **kwargs):
+        self.message = message
+        self.kwargs = kwargs
+        self.kwargs['message'] = message
+        self.kwargs['time'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+    def __str__(self):
+        return json.dumps(self.kwargs)
+
+m = StructuredMessage   # optional, to improve readability
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(message)s',
+    handlers=[
+        logging.FileHandler("/var/log/transfer.log"),
+        logging.StreamHandler()
+    ]
+)
+
 logger = logging.getLogger(__name__)
+logger.info(m('Transfer Service Starting'))
+
 
 app.url_map.converters['everything'] = EverythingConverter
 
@@ -34,7 +61,7 @@ app.url_map.converters['everything'] = EverythingConverter
 @user_level_permission
 def just_upload():
 
-    logger.info('Transfer Service handling request %s', request)
+    logger.info(m('Transfer Service handling request %s', request))
 
     error, valid_inputs = correct_inputs(request)
     if not valid_inputs:
@@ -43,6 +70,7 @@ def just_upload():
     try:
         meta = json.loads(request.files['metadata'].read())
     except:
+        logger.info(m('User gave non json metadata',type = 'log',tags = ["user error"]))
         return flask.jsonify({'uploaded':False,
                         'error':'Metadata must be json file describing object.'}),400
 
@@ -54,26 +82,26 @@ def just_upload():
         return flask.jsonify({'uploaded':False,
                         'error':'Must upload hash of object with tag sha256.'}),400
 
-    print(sha256)
     file_to_upload = File(meta,files[0],sha256,token)
     try:
         file_to_upload.mint_object_id()
-    except:
-        logger.error('Failed to mint identifier.',exc_info=True)
+    except Exception as e:
+        logger.error(m('Failed to mint identifier.',error = e))
         return flask.jsonify({'uploaded':False,
                         'error':'Minting identifers failed.'}),503
 
     file_to_upload.get_object_version()
     try:
         file_to_upload.upload()
-    except:
+    except Exception as e:
+        logger.error(m('Failed to upload file.',error = e))
         file_to_upload.delete_object_id()
         return flask.jsonify({'uploaded':False,
                         'error':'Failed to upload file.'}),503
 
     meta_updated = file_to_upload.update_id()
     if not meta_updated:
-        logger.error('Failed to add distribution id to %s', file_to_upload.object_id)
+        logger.error(m('Failed to add distribution id to %s', file_to_upload.object_id))
 
     file_to_upload.create_resource()
     return flask.jsonify({'uploaded':True,
@@ -104,7 +132,8 @@ def rest(ark):
 
         try:
             meta = json.loads(request.files['metadata'].read())
-        except:
+        except Exception as e:
+            logger.error(m('Failed to delete file.',error = e))
             return flask.jsonify({'uploaded':False,
                             'error':'Metadata must be json file describing object.'}),400
 
@@ -118,8 +147,8 @@ def rest(ark):
         file_to_upload = File(meta,files[0],sha256,token)
         try:
             file_to_upload.mint_object_id()
-        except:
-            logger.error('Failed to mint identifier.',exc_info=True)
+        except Exception as e:
+            logger.error(m('Failed to mint identifier.',error = e))
             return flask.jsonify({'uploaded':False,
                             'error':'Minting identifers failed.'}),503
 
@@ -137,6 +166,7 @@ def rest(ark):
     if flask.request.method == 'GET':
 
         if not valid_ark(ark):
+            logger.info(m('Given bad ark: ' + str(ark),type = 'log',tags = ["user error"]))
             return flask.jsonify({"error":"Improperly formatted Identifier"}), 400
 
         token = request.headers.get("Authorization")

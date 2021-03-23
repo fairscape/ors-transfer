@@ -139,7 +139,11 @@ class File:
         return
 
     def upload(self):
-        full_location = self.object_id.split('/')[-1] + '/' + 'V' + str(self.version) + '/' +  self.file_location
+        if self.folder == '':
+            full_location = self.object_id.split('/')[-1] + '/' + 'V' + str(self.version) + '/' +  self.file_location
+        else:
+            full_location = self.file_location
+            
         object_service_meta = {
             'file_location': full_location,
             'bucket':self.bucket,
